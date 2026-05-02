@@ -62,7 +62,7 @@ Return ONLY valid JSON, no markdown:
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'anthropic/claude-3-5-sonnet',
+      model: 'anthropic/claude-3-5-sonnet-20241022',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 4000,
     })

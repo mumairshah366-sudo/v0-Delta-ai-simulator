@@ -124,7 +124,7 @@ Industry background affects expectations - e.g., someone from Government may exp
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'anthropic/claude-3-5-sonnet',
+      model: 'anthropic/claude-3-5-sonnet-20241022',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
