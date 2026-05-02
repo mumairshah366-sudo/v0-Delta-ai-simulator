@@ -74,26 +74,25 @@ export async function POST(req: NextRequest) {
   // Fetch Mubit memory for context
   let mubitContext = ''
   try {
-    const mubitResponse = await fetch('https://api.mubit.ai/v1/recall', {
+    const mubitResponse = await fetch('https://api.mubit.ai/v1/control/query', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.MUBIT_API_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        agent_id: 'orgsim',
+        run_id: 'orgsim-m7t6ed-quickstart',
+        project_id: 'proj-bbd21702-891f-4dce-b5c5-9116c92fbe93',
         query: decision,
+        mode: 'agent_routed',
         limit: 5
       })
     })
     if (mubitResponse.ok) {
       const mubitData = await mubitResponse.json()
-      if (mubitData.results?.length > 0) {
-        mubitContext = `\n\nPREVIOUS SIMULATION HISTORY (from Delta memory):\n${
-          mubitData.results.map((r: any) =>
-            `- Decision: "${r.input?.decision}" → Outcome: ${JSON.stringify(r.output?.members?.map((m: any) => ({name: m.name, reaction: m.reaction})))}`
-          ).join('\n')
-        }\nUse this history to improve prediction accuracy for returning team members.`
+      const answer = mubitData.final_answer || mubitData.results
+      if (answer) {
+        mubitContext = `\n\nPREVIOUS SIMULATION HISTORY (from Delta memory):\n${JSON.stringify(answer)}\nUse this history to improve prediction accuracy.`
       }
     }
   } catch {
@@ -112,106 +111,3 @@ Return ONLY valid JSON with no markdown or explanation:
       "role": "string", 
       "reaction": "Supportive or Neutral or Resistant",
       "confidence": 0-100,
-      "reasoning": "string",
-      "predicted_behaviours": ["string", "string", "string"],
-      "watch_out": true or false,
-      "what_they_need": "string"
-    }
-  ],
-  "overall_risk_score": 0-100,
-  "biggest_risk": "string",
-  "rollout_strategy": "string",
-  "dri_briefing": "string",
-  "recommendations": ["string", "string", "string"]
-}
-
-USE THIS DATA TO GROUND YOUR PREDICTIONS. Reference specific statistics where relevant. This data is from real employee surveys and HR analytics - not assumptions.
-
-` + DELTA_DATA_ENGINE
-
-  const formattedMembers = members.map((m: Record<string, unknown>) => ({
-    ...m,
-    age: m.age || 'Not specified',
-    previousIndustry: m.previousIndustry || 'Not specified',
-  }))
-
-  const userPrompt = `Team members: ${JSON.stringify(formattedMembers)}
-Decision: ${decision}
-Scope: ${scope}
-DRI: ${dri || 'No specific owner - company decision'}
-Company context: ${companyContext || 'None provided'}
-
-Note: Consider each person's age and previous industry background when predicting reactions. 
-Younger employees (18-25) may be more adaptable but also 3x more likely to leave during major changes.
-Industry background affects expectations - e.g., someone from Government may expect more process, while Tech/Startup expects faster iteration.` + mubitContext
-
-  const aiResponse = await fetch('https://api.vercel.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.VERCEL_AI_GATEWAY_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'anthropic/claude-3-5-sonnet-20241022',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      max_tokens: 4000,
-    })
-  })
-
-  const rawText = await aiResponse.text()
-  console.log('Gateway status:', aiResponse.status)
-  console.log('Gateway response:', rawText.slice(0, 300))
-
-  if (!aiResponse.ok) {
-    throw new Error(`Gateway failed ${aiResponse.status}: ${rawText.slice(0, 200)}`)
-  }
-
-  if (!rawText || rawText.trim() === '') {
-    throw new Error('Gateway returned empty response')
-  }
-
-  const aiData = JSON.parse(rawText)
-  const content = aiData.choices?.[0]?.message?.content || '{}'
-  let jsonContent = content
-  if (content.includes('```json')) {
-    jsonContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '')
-  } else if (content.includes('```')) {
-    jsonContent = content.replace(/```\n?/g, '')
-  }
-  const result = JSON.parse(jsonContent.trim())
-
-  // Save to Mubit memory
-  try {
-    await fetch('https://api.mubit.ai/v1/ingest', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.MUBIT_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        project_id: 'proj-bbd21702-891f-4dce-b5c5-9116c92fbe93',
-        agent_id: 'orgsim',
-        entries: [
-          {
-            type: 'fact',
-            content: `Decision simulated: "${decision}". Scope: ${scope}. Overall risk: ${result.overall_risk_score}/100. Member reactions: ${JSON.stringify(result.members?.map((m: {name: string, reaction: string}) => ({name: m.name, reaction: m.reaction})))}`,
-            metadata: {
-              decision,
-              scope,
-              risk_score: result.overall_risk_score,
-              timestamp: new Date().toISOString()
-            }
-          }
-        ]
-      })
-    })
-    console.log('Mubit ingest successful')
-  } catch (e) {
-    console.error('Mubit ingest error:', e)
-  }
-
-  return NextResponse.json(result)
-}
