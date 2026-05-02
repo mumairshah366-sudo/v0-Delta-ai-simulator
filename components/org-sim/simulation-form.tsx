@@ -36,6 +36,7 @@ export function SimulationForm() {
     setIsSimulating,
     setCurrentSimulation,
     addPastSimulation,
+    companyContext,
   } = useOrgSimStore()
 
   const departments = getUniqueDepartments(teamMembers)
@@ -45,10 +46,6 @@ export function SimulationForm() {
 
     setIsSimulating(true)
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    // Mock simulation result - in production this would call an AI API
     const affectedMembers =
       decisionScope === "Company"
         ? teamMembers
@@ -56,66 +53,155 @@ export function SimulationForm() {
           ? teamMembers.filter((m) => m.department === selectedDepartment)
           : teamMembers.filter((m) => m.id === driId)
 
-    const reactions: PredictedReaction[] = affectedMembers.map((member) => {
-      const isHighRisk =
-        member.status === "On PIP" ||
-        member.status === "At risk of leaving" ||
-        member.status === "No raise 3+ months"
-
-      const reactionTypes: ReactionType[] = ["Supportive", "Neutral", "Resistant"]
-      const reactionWeights = isHighRisk ? [0.2, 0.3, 0.5] : [0.5, 0.3, 0.2]
-      const rand = Math.random()
-      let reaction: ReactionType = "Neutral"
-      if (rand < reactionWeights[0]) reaction = "Supportive"
-      else if (rand < reactionWeights[0] + reactionWeights[1]) reaction = "Neutral"
-      else reaction = "Resistant"
-
-      return {
-        memberId: member.id,
-        member,
-        reaction,
-        confidence: Math.floor(60 + Math.random() * 35),
-        predictedBehaviors: generateBehaviors(reaction, member.status),
-        isHighRisk,
-      }
-    })
-
-    const riskScore = Math.min(
-      100,
-      Math.floor(
-        (reactions.filter((r) => r.reaction === "Resistant").length / reactions.length) * 100 +
-          reactions.filter((r) => r.isHighRisk).length * 5
-      )
-    )
-
     const dri = teamMembers.find((m) => m.id === driId)
 
-    const result: SimulationResult = {
-      id: crypto.randomUUID(),
-      decision: decisionText,
-      scope: decisionScope,
-      department: selectedDepartment,
-      driId,
-      overallRiskScore: riskScore,
-      reactions,
-      driBriefing: generateDriBriefing(dri?.name || null, riskScore, reactions),
-      suggestedApproach: generateApproach(riskScore),
-      rolloutStrategy: generateRolloutStrategy(decisionScope, reactions),
-      createdAt: new Date(),
+    try {
+      const response = await fetch('/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          members: affectedMembers.map((m) => ({
+            name: m.name,
+            role: m.role,
+            department: m.department,
+            seniority: m.seniority,
+            status: m.status,
+            npsScore: m.npsScore,
+            notes: m.notes,
+            yearsAtCompany: Math.floor(
+              (Date.now() - new Date(m.joiningDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+            ),
+            isManager: m.reporteeIds.length > 0,
+            reporteeCount: m.reporteeIds.length,
+          })),
+          decision: decisionText,
+          scope: decisionScope,
+          dri: dri ? { name: dri.name, role: dri.role } : null,
+          companyContext,
+        }),
+      })
+
+      const aiResult = await response.json()
+
+      // Map AI response to our types
+      const reactions: PredictedReaction[] = affectedMembers.map((member) => {
+        const aiMember = aiResult.members?.find(
+          (m: { name: string }) => m.name === member.name
+        )
+        
+        const isHighRisk =
+          member.status === "On PIP" ||
+          member.status === "At risk of leaving" ||
+          member.status === "No raise 3+ months" ||
+          aiMember?.watch_out === true
+
+        return {
+          memberId: member.id,
+          member,
+          reaction: (aiMember?.reaction as ReactionType) || "Neutral",
+          confidence: aiMember?.confidence || 70,
+          predictedBehaviors: aiMember?.predicted_behaviours || generateBehaviors("Neutral", member.status),
+          isHighRisk,
+          reasoning: aiMember?.reasoning,
+          whatTheyNeed: aiMember?.what_they_need,
+        }
+      })
+
+      const riskScore = aiResult.overall_risk_score || Math.min(
+        100,
+        Math.floor(
+          (reactions.filter((r) => r.reaction === "Resistant").length / reactions.length) * 100 +
+            reactions.filter((r) => r.isHighRisk).length * 5
+        )
+      )
+
+      const result: SimulationResult = {
+        id: crypto.randomUUID(),
+        decision: decisionText,
+        scope: decisionScope,
+        department: selectedDepartment,
+        driId,
+        overallRiskScore: riskScore,
+        reactions,
+        driBriefing: aiResult.dri_briefing || generateDriBriefing(dri?.name || null, riskScore, reactions),
+        suggestedApproach: aiResult.recommendations || generateApproach(riskScore),
+        rolloutStrategy: aiResult.rollout_strategy || generateRolloutStrategy(decisionScope, reactions),
+        biggestRisk: aiResult.biggest_risk,
+        createdAt: new Date(),
+      }
+
+      setCurrentSimulation(result)
+
+      const pastSim: PastSimulation = {
+        id: result.id,
+        decision: decisionText,
+        scope: decisionScope,
+        riskScore,
+        createdAt: new Date(),
+      }
+      addPastSimulation(pastSim)
+    } catch (error) {
+      console.error('Simulation failed:', error)
+      // Fallback to mock if API fails
+      const reactions: PredictedReaction[] = affectedMembers.map((member) => {
+        const isHighRisk =
+          member.status === "On PIP" ||
+          member.status === "At risk of leaving" ||
+          member.status === "No raise 3+ months"
+
+        const reactionTypes: ReactionType[] = ["Supportive", "Neutral", "Resistant"]
+        const reactionWeights = isHighRisk ? [0.2, 0.3, 0.5] : [0.5, 0.3, 0.2]
+        const rand = Math.random()
+        let reaction: ReactionType = "Neutral"
+        if (rand < reactionWeights[0]) reaction = "Supportive"
+        else if (rand < reactionWeights[0] + reactionWeights[1]) reaction = "Neutral"
+        else reaction = "Resistant"
+
+        return {
+          memberId: member.id,
+          member,
+          reaction,
+          confidence: Math.floor(60 + Math.random() * 35),
+          predictedBehaviors: generateBehaviors(reaction, member.status),
+          isHighRisk,
+        }
+      })
+
+      const riskScore = Math.min(
+        100,
+        Math.floor(
+          (reactions.filter((r) => r.reaction === "Resistant").length / reactions.length) * 100 +
+            reactions.filter((r) => r.isHighRisk).length * 5
+        )
+      )
+
+      const result: SimulationResult = {
+        id: crypto.randomUUID(),
+        decision: decisionText,
+        scope: decisionScope,
+        department: selectedDepartment,
+        driId,
+        overallRiskScore: riskScore,
+        reactions,
+        driBriefing: generateDriBriefing(dri?.name || null, riskScore, reactions),
+        suggestedApproach: generateApproach(riskScore),
+        rolloutStrategy: generateRolloutStrategy(decisionScope, reactions),
+        createdAt: new Date(),
+      }
+
+      setCurrentSimulation(result)
+
+      const pastSim: PastSimulation = {
+        id: result.id,
+        decision: decisionText,
+        scope: decisionScope,
+        riskScore,
+        createdAt: new Date(),
+      }
+      addPastSimulation(pastSim)
+    } finally {
+      setIsSimulating(false)
     }
-
-    setCurrentSimulation(result)
-
-    const pastSim: PastSimulation = {
-      id: result.id,
-      decision: decisionText,
-      scope: decisionScope,
-      riskScore,
-      createdAt: new Date(),
-    }
-    addPastSimulation(pastSim)
-
-    setIsSimulating(false)
   }
 
   const canSimulate = decisionText && teamMembers.length > 0

@@ -89,6 +89,12 @@ function ReactionCard({ prediction }: { prediction: PredictedReaction }) {
         </span>
       </div>
 
+      {prediction.reasoning && (
+        <p className="text-xs text-foreground mb-2 leading-relaxed bg-muted/50 p-2 rounded-lg">
+          {prediction.reasoning}
+        </p>
+      )}
+
       <ul className="space-y-1.5">
         {prediction.predictedBehaviors.map((behavior, i) => (
           <li key={i} className="text-xs text-muted-foreground flex gap-2 leading-relaxed">
@@ -97,6 +103,15 @@ function ReactionCard({ prediction }: { prediction: PredictedReaction }) {
           </li>
         ))}
       </ul>
+
+      {prediction.whatTheyNeed && (
+        <div className="mt-3 pt-3 border-t border-border">
+          <p className="text-xs">
+            <span className="font-medium text-foreground">What they need: </span>
+            <span className="text-muted-foreground">{prediction.whatTheyNeed}</span>
+          </p>
+        </div>
+      )}
     </div>
   )
 }
@@ -121,7 +136,7 @@ export function SimulationResults() {
   }
 
   const dri = teamMembers.find((m) => m.id === currentSimulation.driId)
-  const { overallRiskScore, reactions, driBriefing, suggestedApproach, rolloutStrategy } =
+  const { overallRiskScore, reactions, driBriefing, suggestedApproach, rolloutStrategy, biggestRisk } =
     currentSimulation
 
   return (
@@ -222,6 +237,25 @@ export function SimulationResults() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Biggest Risk - only shown if AI provided it */}
+        {biggestRisk && (
+          <Card className="border-red-200 bg-red-50/50 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-3 text-base text-red-800">
+                <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center">
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                </div>
+                Key Risk to Address
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-red-700 leading-relaxed">
+                {biggestRisk}
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Briefing - shows "Leadership Briefing" or "DRI Briefing" */}
         <Card className="border-border shadow-sm">

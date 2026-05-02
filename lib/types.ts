@@ -33,6 +33,8 @@ export interface PredictedReaction {
   confidence: number
   predictedBehaviors: string[]
   isHighRisk: boolean
+  reasoning?: string
+  whatTheyNeed?: string
 }
 
 export interface SimulationResult {
@@ -40,12 +42,13 @@ export interface SimulationResult {
   decision: string
   scope: DecisionScope
   department: string | null
-  driId: string
+  driId: string | null
   overallRiskScore: number
   reactions: PredictedReaction[]
   driBriefing: string
   suggestedApproach: string[]
   rolloutStrategy: string
+  biggestRisk?: string
   createdAt: Date
 }
 
