@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/collapsible"
 import { useDeltaStore, calculateYearsAtCompany } from "@/lib/store"
 import type { TeamMember, Seniority, Status } from "@/lib/types"
+import { BulkUploadModal } from "./bulk-upload-modal"
 
 const SENIORITY_OPTIONS: Seniority[] = ["Junior", "Mid", "Senior"]
 const STATUS_OPTIONS: Status[] = [
@@ -490,6 +491,8 @@ export function TeamSidebar() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <BulkUploadModal />
 
         {/* Company Context - Collapsible */}
         <Collapsible open={contextExpanded} onOpenChange={setContextExpanded} className="mt-4">
