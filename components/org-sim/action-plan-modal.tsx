@@ -75,19 +75,41 @@ export function ActionPlanModal({ simulation }: { simulation: SimulationResult }
   const [copied, setCopied] = useState(false)
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({})
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
   const generatePlan = async () => {
     setIsLoading(true)
+    setErrorMessage(null)
     try {
+      console.log('[v0] Generating action plan for simulation:', {
+        decision: simulation.decision,
+        riskScore: simulation.overallRiskScore,
+        reactions: simulation.reactions.length,
+        companyContext: companyContext ? 'provided' : 'none'
+      })
+
       const response = await fetch('/api/generate-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ simulation, companyContext }),
       })
+
+      console.log('[v0] Action plan API response status:', response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('[v0] Action plan API error:', errorText)
+        throw new Error(`API returned ${response.status}: ${errorText}`)
+      }
+
       const data = await response.json()
+      console.log('[v0] Action plan generated successfully:', data.title)
       setPlan(data)
     } catch (error) {
-      console.error('Failed to generate plan:', error)
-      setPlan({ error: 'Failed to generate plan' } as ActionPlan)
+      console.error('[v0] Failed to generate plan:', error)
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setErrorMessage(`Failed to generate plan. ${message}`)
+      setPlan(null)
     } finally {
       setIsLoading(false)
     }
@@ -202,6 +224,16 @@ ${plan.driResponsibilities?.map((r, i) => `${i + 1}. ${r}`).join('\n') || 'N/A'}
             <div className="text-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
               <p className="text-sm text-muted-foreground">Generating your action plan...</p>
+            </div>
+          </div>
+        ) : errorMessage ? (
+          <div className="p-6">
+            <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-center">
+              <p className="text-sm text-red-700 font-medium mb-2">Failed to generate plan</p>
+              <p className="text-xs text-red-600 mb-4">{errorMessage}</p>
+              <Button variant="outline" size="sm" onClick={generatePlan}>
+                Try Again
+              </Button>
             </div>
           </div>
         ) : plan?.error ? (

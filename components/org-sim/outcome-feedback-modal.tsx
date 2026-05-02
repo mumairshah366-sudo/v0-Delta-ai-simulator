@@ -31,6 +31,7 @@ import type {
   SimulationOutcome 
 } from "@/lib/types"
 import { updateDeltaMemoryOutcome } from "./delta-memory-panel"
+import { showDeltaToast } from "./delta-toast"
 
 const OUTCOME_RESULTS: OutcomeResult[] = [
   "Better than predicted",
@@ -115,6 +116,9 @@ export function OutcomeFeedbackModal({ simulation }: OutcomeFeedbackModalProps) 
       console.error('Failed to send outcome to learning API:', error)
     }
 
+    // Show success toast
+    showDeltaToast("Outcome saved to Delta memory")
+
     setIsOpen(false)
   }
 
@@ -183,12 +187,12 @@ export function OutcomeFeedbackModal({ simulation }: OutcomeFeedbackModalProps) 
             </Select>
           </div>
 
-          {/* Individual reactions */}
+          {/* Individual reactions - scrollable with fixed max height */}
           {simulation.reactions && simulation.reactions.length > 0 && (
-            <div className="space-y-2 flex-1 overflow-hidden flex flex-col">
-              <Label>Individual reactions</Label>
-              <ScrollArea className="flex-1 border rounded-lg">
-                <div className="p-2 space-y-2">
+            <div className="space-y-2">
+              <Label>Individual reactions ({simulation.reactions.length})</Label>
+              <div className="border rounded-lg overflow-hidden">
+                <div className="max-h-[300px] overflow-y-auto p-2 space-y-2">
                   {simulation.reactions.map((r) => (
                     <div
                       key={r.memberId}
@@ -228,7 +232,7 @@ export function OutcomeFeedbackModal({ simulation }: OutcomeFeedbackModalProps) 
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             </div>
           )}
         </div>

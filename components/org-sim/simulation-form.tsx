@@ -1,6 +1,7 @@
 "use client"
 
-import { Play, Building2, Users2, User, Zap } from "lucide-react"
+import { useState } from "react"
+import { Play, Building2, Users2, User, Zap, AlertCircle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -14,6 +15,7 @@ import {
 import { useDeltaStore, getUniqueDepartments } from "@/lib/store"
 import type { DecisionScope, PastSimulation, SimulationResult, ReactionType, PredictedReaction } from "@/lib/types"
 import { updateDeltaMemory } from "./delta-memory-panel"
+import { showDeltaToast } from "./delta-toast"
 import { Spinner } from "@/components/ui/spinner"
 
 const SCOPE_OPTIONS: { value: DecisionScope; label: string; icon: React.ReactNode }[] = [
@@ -41,11 +43,13 @@ export function SimulationForm() {
   } = useDeltaStore()
 
   const departments = getUniqueDepartments(teamMembers)
+  const [apiError, setApiError] = useState<string | null>(null)
 
   const handleRunSimulation = async () => {
     if (!decisionText || teamMembers.length === 0) return
 
     setIsSimulating(true)
+    setApiError(null)
 
     const affectedMembers =
       decisionScope === "Company"
@@ -140,6 +144,9 @@ export function SimulationForm() {
         updateDeltaMemory(r.memberId, r.member.name, decisionText, r.reaction)
       })
 
+      // Show success toast
+      showDeltaToast("Saved to Delta memory")
+
       const pastSim: PastSimulation = {
         id: result.id,
         decision: decisionText,
@@ -149,7 +156,9 @@ export function SimulationForm() {
       }
       addPastSimulation(pastSim, reactions)
     } catch (error) {
-      console.error('Simulation failed:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('[v0] AI API error:', errorMessage, error)
+      setApiError(`AI API error: ${errorMessage}. Using fallback predictions.`)
       // Fallback to mock if API fails
       const reactions: PredictedReaction[] = affectedMembers.map((member) => {
         const isHighRisk =
@@ -203,6 +212,9 @@ export function SimulationForm() {
       reactions.forEach((r) => {
         updateDeltaMemory(r.memberId, r.member.name, decisionText, r.reaction)
       })
+
+      // Show success toast (even with fallback)
+      showDeltaToast("Saved to Delta memory")
 
       const pastSim: PastSimulation = {
         id: result.id,
@@ -338,6 +350,19 @@ export function SimulationForm() {
         <p className="text-xs text-center text-muted-foreground">
           Add team members to run a simulation
         </p>
+      )}
+
+      {/* API Error Banner */}
+      {apiError && (
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+          <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-amber-800">{apiError}</p>
+          </div>
+          <button onClick={() => setApiError(null)} className="p-0.5 hover:bg-amber-100 rounded">
+            <X className="h-3 w-3 text-amber-600" />
+          </button>
+        </div>
       )}
     </div>
   )

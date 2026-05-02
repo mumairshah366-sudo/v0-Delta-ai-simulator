@@ -156,8 +156,25 @@ export function SimulationResults() {
                   overallRiskScore < 60 ? "text-amber-600" : "text-red-600"
                 }`} />
               </div>
-              Risk Assessment
+              <div>
+                <span>Overall Risk Score: </span>
+                <span className={`font-bold ${
+                  overallRiskScore < 30 ? "text-emerald-600" :
+                  overallRiskScore < 60 ? "text-amber-600" : "text-red-600"
+                }`}>
+                  {overallRiskScore}/100
+                </span>
+                <span className={`ml-2 text-sm font-normal ${
+                  overallRiskScore < 30 ? "text-emerald-600" :
+                  overallRiskScore < 60 ? "text-amber-600" : "text-red-600"
+                }`}>
+                  — {overallRiskScore < 30 ? "Low Risk" : overallRiskScore < 60 ? "Medium Risk" : "High Risk"}
+                </span>
+              </div>
             </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1 ml-12">
+              Below 30 = <span className="text-emerald-600">Low</span> · 30-60 = <span className="text-amber-600">Medium</span> · Above 60 = <span className="text-red-600">High</span>
+            </p>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-6">
@@ -191,28 +208,17 @@ export function SimulationResults() {
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-2xl font-bold text-foreground">
+                  <span className={`text-2xl font-bold ${
+                    overallRiskScore < 30 ? "text-emerald-600" :
+                    overallRiskScore < 60 ? "text-amber-600" : "text-red-600"
+                  }`}>
                     {overallRiskScore}
                   </span>
                 </div>
               </div>
               <div className="flex-1">
-                <p className={`text-sm font-medium mb-2 ${
-                  overallRiskScore < 30 ? "text-emerald-700" :
-                  overallRiskScore < 60 ? "text-amber-700" : "text-red-700"
-                }`}>
-                  {overallRiskScore < 30
-                    ? "Low Risk"
-                    : overallRiskScore < 60
-                      ? "Moderate Risk"
-                      : "High Risk"}
-                </p>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {overallRiskScore < 30
-                    ? "Team is generally receptive to this change"
-                    : overallRiskScore < 60
-                      ? "Some concerns need to be addressed"
-                      : "Significant resistance expected"}
+                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                  Based on predicted resistance levels and number of at-risk individuals in this simulation.
                 </p>
                 <div className="flex flex-wrap gap-3 text-xs">
                   <div className="flex items-center gap-1.5">

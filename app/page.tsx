@@ -5,6 +5,7 @@ import { TeamSidebar } from "@/components/org-sim/team-sidebar"
 import { SimulationForm } from "@/components/org-sim/simulation-form"
 import { SimulationResults } from "@/components/org-sim/simulation-results"
 import { PastSimulations } from "@/components/org-sim/past-simulations"
+import { DeltaToast } from "@/components/org-sim/delta-toast"
 
 export default function DeltaPage() {
   return (
@@ -58,6 +59,9 @@ export default function DeltaPage() {
         {/* Past Simulations */}
         <PastSimulations />
       </main>
+
+      {/* Toast notification */}
+      <DeltaToast />
     </div>
   )
 }
