@@ -70,6 +70,34 @@ Top complaints: "Low compensation, zero advancement opportunities"
 
 export async function POST(req: NextRequest) {
   const { members, decision, scope, dri, companyContext } = await req.json()
+  // Fetch Mubit memory for context
+let mubitContext = ''
+try {
+  const mubitResponse = await fetch('https://api.mubit.ai/v1/recall', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.MUBIT_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      agent_id: 'orgsim',
+      query: decision,
+      limit: 5
+    })
+  })
+  if (mubitResponse.ok) {
+    const mubitData = await mubitResponse.json()
+    if (mubitData.results?.length > 0) {
+      mubitContext = `\n\nPREVIOUS SIMULATION HISTORY (from Delta memory):\n${
+        mubitData.results.map((r: any) => 
+          `- Decision: "${r.input?.decision}" → Outcome: ${JSON.stringify(r.output?.members?.map((m: any) => ({name: m.name, reaction: m.reaction})))}`
+        ).join('\n')
+      }\nUse this history to improve prediction accuracy for returning team members.`
+    }
+  }
+} catch {
+  // Mubit recall failed silently
+}
 
   const systemPrompt = `You are an organisational psychology simulator. 
 You predict how individual employees will react to company decisions 
@@ -115,7 +143,7 @@ Company context: ${companyContext || 'None provided'}
 
 Note: Consider each person's age and previous industry background when predicting reactions. 
 Younger employees (18-25) may be more adaptable but also 3x more likely to leave during major changes.
-Industry background affects expectations - e.g., someone from Government may expect more process, while Tech/Startup expects faster iteration.`
+Industry background affects expectations - e.g., someone from Government may expect more process, while Tech/Startup expects faster iteration.`+ mubitContext
 
   const aiResponse = await fetch('https://api.vercel.ai/v1/chat/completions', {
     method: 'POST',
