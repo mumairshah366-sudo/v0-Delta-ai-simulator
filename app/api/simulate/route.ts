@@ -35,7 +35,7 @@ DRI: ${dri || 'No specific owner - company decision'}
 Company context: ${companyContext || 'None provided'}`
 
   try {
-    const aiResponse = await fetch('https://api.vercel.com/v1/ai/generate', {
+    const aiResponse = await fetch('https://api.vercel.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.VERCEL_AI_GATEWAY_KEY}`,
