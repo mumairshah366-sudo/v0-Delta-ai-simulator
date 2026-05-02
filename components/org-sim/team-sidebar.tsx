@@ -244,11 +244,13 @@ export function TeamSidebar() {
       // Dynamic import pdfjs-dist for client-side PDF parsing
       const pdfjsLib = await import('pdfjs-dist')
       
-      // Set worker source
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+      // Use the legacy build which has the worker bundled
+      const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.mjs')
+      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker
 
       const arrayBuffer = await file.arrayBuffer()
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
+      const pdf = await loadingTask.promise
       
       let fullText = ''
       for (let i = 1; i <= pdf.numPages; i++) {
@@ -260,12 +262,28 @@ export function TeamSidebar() {
         fullText += pageText + '\n\n'
       }
 
-      setCompanyContext(fullText.trim())
-      setUploadedFileName(file.name)
-      setContextExpanded(true)
+      if (fullText.trim()) {
+        setCompanyContext(fullText.trim())
+        setUploadedFileName(file.name)
+        setContextExpanded(true)
+      } else {
+        alert('Could not extract text from PDF. The PDF may be image-based. Please paste the text manually.')
+      }
     } catch (error) {
       console.error('PDF upload error:', error)
-      alert('Failed to parse PDF. Please try again or paste the text manually.')
+      // Fallback: try to read as text file in case it's misnamed
+      try {
+        const text = await file.text()
+        if (text.trim()) {
+          setCompanyContext(text.trim())
+          setUploadedFileName(file.name)
+          setContextExpanded(true)
+        } else {
+          alert('Failed to parse PDF. Please paste the text manually.')
+        }
+      } catch {
+        alert('Failed to parse PDF. Please paste the text manually.')
+      }
     } finally {
       setIsUploadingPdf(false)
       // Reset the input so the same file can be uploaded again
@@ -311,8 +329,8 @@ export function TeamSidebar() {
   }
 
   return (
-    <aside className="w-80 border-r border-border bg-sidebar flex flex-col h-full">
-      <div className="p-5 border-b border-border">
+    <aside className="w-80 border-r border-border bg-sidebar flex flex-col h-full overflow-hidden">
+      <div className="p-5 border-b border-border flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -671,7 +689,7 @@ export function TeamSidebar() {
         </Collapsible>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-4 space-y-3">
           {teamMembers.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
