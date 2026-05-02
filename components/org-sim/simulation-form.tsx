@@ -145,7 +145,7 @@ export function SimulationForm() {
       })
 
       // Show success toast
-      showDeltaToast("Saved to Delta memory")
+      showDeltaToast("Saved to Delta memory", "🧠")
 
       const pastSim: PastSimulation = {
         id: result.id,
@@ -214,7 +214,7 @@ export function SimulationForm() {
       })
 
       // Show success toast (even with fallback)
-      showDeltaToast("Saved to Delta memory")
+      showDeltaToast("Saved to Delta memory", "🧠")
 
       const pastSim: PastSimulation = {
         id: result.id,

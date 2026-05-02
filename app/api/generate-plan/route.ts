@@ -55,31 +55,44 @@ Return ONLY valid JSON, no markdown:
   "driResponsibilities": ["string", "string", "string"]
 }`
 
-  const response = await fetch('https://api.vercel.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.VERCEL_AI_GATEWAY_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'anthropic/claude-sonnet-4-6',
-      messages: [{ role: 'user', content: prompt }]
-    })
-  })
-
-  const data = await response.json()
-  const content = data.choices?.[0]?.message?.content || '{}'
-  
-  let parsed
   try {
-    let clean = content
-    if (content.includes('```json')) {
-      clean = content.replace(/```json\n?/g, '').replace(/```\n?/g, '')
-    }
-    parsed = JSON.parse(clean.trim())
-  } catch {
-    parsed = { error: 'Failed to parse plan' }
-  }
+    const response = await fetch('https://api.vercel.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.VERCEL_AI_GATEWAY_KEY}`,
+        'Content-Type': 'application/json',
+        'x-vercel-ai-gateway': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    })
 
-  return NextResponse.json(parsed)
+    const rawText = await response.text()
+    if (!response.ok) {
+      console.error('Gateway error:', rawText)
+      throw new Error(`Gateway failed: ${rawText.slice(0, 200)}`)
+    }
+    
+    const data = JSON.parse(rawText)
+    const content = data.choices?.[0]?.message?.content || '{}'
+    
+    let jsonContent = content
+    if (content.includes('```json')) {
+      jsonContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '')
+    } else if (content.includes('```')) {
+      jsonContent = content.replace(/```\n?/g, '')
+    }
+    
+    const result = JSON.parse(jsonContent.trim())
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('Generate plan error:', error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json(
+      { error: `Failed to generate plan: ${message}` },
+      { status: 500 }
+    )
+  }
 }

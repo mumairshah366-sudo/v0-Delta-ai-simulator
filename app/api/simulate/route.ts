@@ -122,10 +122,11 @@ Industry background affects expectations - e.g., someone from Government may exp
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.VERCEL_AI_GATEWAY_KEY}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-vercel-ai-gateway': 'true'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-sonnet-4-6',
+        model: 'claude-sonnet-4-5',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -133,7 +134,13 @@ Industry background affects expectations - e.g., someone from Government may exp
       })
     })
 
-    const aiData = await aiResponse.json()
+    const rawText = await aiResponse.text()
+    if (!aiResponse.ok) {
+      console.error('Gateway error:', rawText)
+      throw new Error(`Gateway failed: ${rawText.slice(0, 200)}`)
+    }
+    
+    const aiData = JSON.parse(rawText)
     const content = aiData.choices?.[0]?.message?.content || '{}'
     
     // Parse the JSON response, handling potential markdown code blocks
@@ -163,8 +170,9 @@ Industry background affects expectations - e.g., someone from Government may exp
     return NextResponse.json(result)
   } catch (error) {
     console.error('Simulation error:', error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { error: 'Failed to run simulation' },
+      { error: `Failed to run simulation: ${message}` },
       { status: 500 }
     )
   }

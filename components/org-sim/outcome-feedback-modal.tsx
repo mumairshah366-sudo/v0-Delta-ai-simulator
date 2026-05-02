@@ -66,12 +66,33 @@ interface OutcomeFeedbackModalProps {
   simulation: PastSimulation
 }
 
+type RecordMode = "individual" | "department"
+type DepartmentReaction = "Strongly Supportive" | "Mostly Supportive" | "Mixed" | "Mostly Resistant" | "Strongly Resistant"
+
+const DEPARTMENT_REACTIONS: DepartmentReaction[] = [
+  "Strongly Supportive",
+  "Mostly Supportive",
+  "Mixed",
+  "Mostly Resistant",
+  "Strongly Resistant"
+]
+
 export function OutcomeFeedbackModal({ simulation }: OutcomeFeedbackModalProps) {
   const { updateSimulationOutcome } = useDeltaStore()
   const [isOpen, setIsOpen] = useState(false)
+  const [recordMode, setRecordMode] = useState<RecordMode>("individual")
   const [actualOutcome, setActualOutcome] = useState("")
   const [overallResult, setOverallResult] = useState<OutcomeResult | "">("")
   const [memberOutcomes, setMemberOutcomes] = useState<Record<string, ActualReaction | null>>({})
+  const [deptOutcomes, setDeptOutcomes] = useState<Record<string, DepartmentReaction | null>>({})
+
+  // Group reactions by department
+  const departmentGroups = simulation.reactions?.reduce((acc, r) => {
+    const dept = r.member.department
+    if (!acc[dept]) acc[dept] = []
+    acc[dept].push(r)
+    return acc
+  }, {} as Record<string, typeof simulation.reactions>) || {}
 
   const handleSave = async () => {
     if (!overallResult) return
@@ -117,7 +138,7 @@ export function OutcomeFeedbackModal({ simulation }: OutcomeFeedbackModalProps) 
     }
 
     // Show success toast
-    showDeltaToast("Outcome saved to Delta memory")
+    showDeltaToast("Outcome recorded — Delta is learning", "✓")
 
     setIsOpen(false)
   }
@@ -148,6 +169,33 @@ export function OutcomeFeedbackModal({ simulation }: OutcomeFeedbackModalProps) 
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden flex flex-col gap-4 py-4">
+          {/* Record mode toggle */}
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Record by:</Label>
+            <div className="flex rounded-lg border border-border overflow-hidden">
+              <button
+                onClick={() => setRecordMode("individual")}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                  recordMode === "individual" 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-background text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                Individual
+              </button>
+              <button
+                onClick={() => setRecordMode("department")}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                  recordMode === "department" 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-background text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                Team / Department
+              </button>
+            </div>
+          </div>
+
           {/* Decision reminder */}
           <div className="p-3 rounded-lg bg-muted/50 border border-border">
             <p className="text-xs text-muted-foreground mb-1">Decision:</p>
@@ -188,11 +236,11 @@ export function OutcomeFeedbackModal({ simulation }: OutcomeFeedbackModalProps) 
           </div>
 
           {/* Individual reactions - scrollable with fixed max height */}
-          {simulation.reactions && simulation.reactions.length > 0 && (
+          {recordMode === "individual" && simulation.reactions && simulation.reactions.length > 0 && (
             <div className="space-y-2">
               <Label>Individual reactions ({simulation.reactions.length})</Label>
               <div className="border rounded-lg overflow-hidden">
-                <div className="max-h-[300px] overflow-y-auto p-2 space-y-2">
+                <div className="max-h-[320px] overflow-y-auto p-2 space-y-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
                   {simulation.reactions.map((r) => (
                     <div
                       key={r.memberId}
@@ -223,6 +271,50 @@ export function OutcomeFeedbackModal({ simulation }: OutcomeFeedbackModalProps) 
                         </SelectTrigger>
                         <SelectContent>
                           {ACTUAL_REACTIONS.map((reaction) => (
+                            <SelectItem key={reaction} value={reaction}>
+                              {reaction}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Department mode - group by department */}
+          {recordMode === "department" && Object.keys(departmentGroups).length > 0 && (
+            <div className="space-y-2">
+              <Label>Department reactions ({Object.keys(departmentGroups).length} departments)</Label>
+              <div className="border rounded-lg overflow-hidden">
+                <div className="max-h-[320px] overflow-y-auto p-2 space-y-2">
+                  {Object.entries(departmentGroups).map(([dept, members]) => (
+                    <div
+                      key={dept}
+                      className="flex items-center justify-between p-3 rounded-lg bg-background border border-border"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="text-sm font-medium text-foreground">{dept}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {members.length} {members.length === 1 ? "member" : "members"}
+                        </Badge>
+                      </div>
+                      <Select
+                        value={deptOutcomes[dept] || ""}
+                        onValueChange={(value) =>
+                          setDeptOutcomes((prev) => ({
+                            ...prev,
+                            [dept]: value as DepartmentReaction,
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="w-44 h-8 text-xs">
+                          <SelectValue placeholder="Overall reaction..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DEPARTMENT_REACTIONS.map((reaction) => (
                             <SelectItem key={reaction} value={reaction}>
                               {reaction}
                             </SelectItem>
