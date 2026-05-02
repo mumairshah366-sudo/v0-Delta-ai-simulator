@@ -107,7 +107,7 @@ export function SimulationForm() {
           member,
           reaction: (aiMember?.reaction as ReactionType) || "Neutral",
           confidence: aiMember?.confidence || 70,
-          predictedBehaviors: aiMember?.predicted_behaviours || generateBehaviors("Neutral", member.status),
+          predictedBehaviors: aiMember?.predicted_behaviours || aiMember?.predictedBehaviours || [],
           isHighRisk,
           reasoning: aiMember?.reasoning,
           whatTheyNeed: aiMember?.what_they_need,
