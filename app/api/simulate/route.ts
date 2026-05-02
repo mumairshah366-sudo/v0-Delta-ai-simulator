@@ -74,25 +74,26 @@ export async function POST(req: NextRequest) {
   // Fetch Mubit memory for context
   let mubitContext = ''
   try {
-    const mubitResponse = await fetch('https://api.mubit.ai/v1/control/query', {
+    const mubitResponse = await fetch('https://api.mubit.ai/v1/recall', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.MUBIT_API_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        run_id: 'orgsim-m7t6ed-quickstart',
-        project_id: 'proj-bbd21702-891f-4dce-b5c5-9116c92fbe93',
+        agent_id: 'orgsim',
         query: decision,
-        mode: 'agent_routed',
         limit: 5
       })
     })
     if (mubitResponse.ok) {
       const mubitData = await mubitResponse.json()
-      const answer = mubitData.final_answer || mubitData.results
-      if (answer) {
-        mubitContext = `\n\nPREVIOUS SIMULATION HISTORY (from Delta memory):\n${JSON.stringify(answer)}\nUse this history to improve prediction accuracy.`
+      if (mubitData.results?.length > 0) {
+        mubitContext = `\n\nPREVIOUS SIMULATION HISTORY (from Delta memory):\n${
+          mubitData.results.map((r: any) =>
+            `- Decision: "${r.input?.decision}" → Outcome: ${JSON.stringify(r.output?.members?.map((m: any) => ({name: m.name, reaction: m.reaction})))}`
+          ).join('\n')
+        }\nUse this history to improve prediction accuracy for returning team members.`
       }
     }
   } catch {
@@ -103,20 +104,6 @@ export async function POST(req: NextRequest) {
 You predict how individual employees will react to company decisions 
 based on their personal context. Analyse each person's status, seniority, 
 NPS score, notes, time at company, and relationship to the DRI.
-
-CRITICAL RULES - you MUST follow these:
-- Person on PIP = Resistant (always)
-- Person with no raise 3+ months = Resistant (almost always)
-- Person at risk of leaving = Resistant (always)
-- Recently promoted person = Supportive (almost always)
-- High performer = Supportive (usually)
-- New joiner = follows senior team sentiment
-- NPS below 5 = skew Resistant
-- NPS above 7 = skew Supportive
-- A salary INCREASE should make most people Supportive
-- A layoff affects ALL departments negatively not just the one being laid off
-- Be DECISIVE - avoid Neutral unless truly justified
-
 Return ONLY valid JSON with no markdown or explanation:
 {
   "members": [
@@ -125,10 +112,10 @@ Return ONLY valid JSON with no markdown or explanation:
       "role": "string", 
       "reaction": "Supportive or Neutral or Resistant",
       "confidence": 0-100,
-      "reasoning": "string - be specific to THIS person's situation",
-      "predicted_behaviours": ["specific behaviour 1", "specific behaviour 2", "specific behaviour 3"],
+      "reasoning": "string",
+      "predicted_behaviours": ["string", "string", "string"],
       "watch_out": true or false,
-      "what_they_need": "string - specific to this person"
+      "what_they_need": "string"
     }
   ],
   "overall_risk_score": 0-100,
@@ -137,6 +124,8 @@ Return ONLY valid JSON with no markdown or explanation:
   "dri_briefing": "string",
   "recommendations": ["string", "string", "string"]
 }
+
+USE THIS DATA TO GROUND YOUR PREDICTIONS. Reference specific statistics where relevant. This data is from real employee surveys and HR analytics - not assumptions.
 
 ` + DELTA_DATA_ENGINE
 
@@ -150,30 +139,42 @@ Return ONLY valid JSON with no markdown or explanation:
 Decision: ${decision}
 Scope: ${scope}
 DRI: ${dri || 'No specific owner - company decision'}
-Company context: ${companyContext || 'None provided'}` + mubitContext
+Company context: ${companyContext || 'None provided'}
 
-  const aiResponse = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 4000 }
-      })
-    }
-  )
+Note: Consider each person's age and previous industry background when predicting reactions. 
+Younger employees (18-25) may be more adaptable but also 3x more likely to leave during major changes.
+Industry background affects expectations - e.g., someone from Government may expect more process, while Tech/Startup expects faster iteration.` + mubitContext
+
+  const aiResponse = await fetch('https://api.vercel.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.VERCEL_AI_GATEWAY_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-3-5-sonnet-20241022',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      max_tokens: 4000,
+    })
+  })
 
   const rawText = await aiResponse.text()
-  console.log('Gemini status:', aiResponse.status)
-  console.log('Gemini response:', rawText.slice(0, 300))
+  console.log('Gateway status:', aiResponse.status)
+  console.log('Gateway response:', rawText.slice(0, 300))
 
   if (!aiResponse.ok) {
-    throw new Error(`Gemini error: ${rawText.slice(0, 200)}`)
+    throw new Error(`Gateway failed ${aiResponse.status}: ${rawText.slice(0, 200)}`)
+  }
+
+  if (!rawText || rawText.trim() === '') {
+    throw new Error('Gateway returned empty response')
   }
 
   const aiData = JSON.parse(rawText)
-  const content = aiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
+  const content = aiData.choices?.[0]?.message?.content || '{}'
   let jsonContent = content
   if (content.includes('```json')) {
     jsonContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '')
@@ -184,26 +185,30 @@ Company context: ${companyContext || 'None provided'}` + mubitContext
 
   // Save to Mubit memory
   try {
-    const ingestResponse = await fetch('https://api.mubit.ai/v1/control/ingest', {
+    await fetch('https://api.mubit.ai/v1/ingest', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.MUBIT_API_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        run_id: `orgsim-${Date.now()}`,
         project_id: 'proj-bbd21702-891f-4dce-b5c5-9116c92fbe93',
-        documents: [
+        agent_id: 'orgsim',
+        entries: [
           {
-            content: `Decision simulated: "${decision}". Scope: ${scope}. Overall risk: ${result.overall_risk_score}/100. Reactions: ${JSON.stringify(result.members?.map((m: {name: string, reaction: string}) => ({name: m.name, reaction: m.reaction})))}`,
-            metadata: { decision, scope, risk_score: result.overall_risk_score, timestamp: new Date().toISOString() }
+            type: 'fact',
+            content: `Decision simulated: "${decision}". Scope: ${scope}. Overall risk: ${result.overall_risk_score}/100. Member reactions: ${JSON.stringify(result.members?.map((m: {name: string, reaction: string}) => ({name: m.name, reaction: m.reaction})))}`,
+            metadata: {
+              decision,
+              scope,
+              risk_score: result.overall_risk_score,
+              timestamp: new Date().toISOString()
+            }
           }
         ]
       })
     })
-    console.log('Mubit ingest status:', ingestResponse.status)
-    const ingestText = await ingestResponse.text()
-    console.log('Mubit ingest response:', ingestText.slice(0, 200))
+    console.log('Mubit ingest successful')
   } catch (e) {
     console.error('Mubit ingest error:', e)
   }
