@@ -41,7 +41,7 @@ export function SimulationForm() {
   const departments = getUniqueDepartments(teamMembers)
 
   const handleRunSimulation = async () => {
-    if (!decisionText || !driId || teamMembers.length === 0) return
+    if (!decisionText || teamMembers.length === 0) return
 
     setIsSimulating(true)
 
@@ -98,7 +98,7 @@ export function SimulationForm() {
       driId,
       overallRiskScore: riskScore,
       reactions,
-      driBriefing: generateDriBriefing(dri?.name || "DRI", riskScore, reactions),
+      driBriefing: generateDriBriefing(dri?.name || null, riskScore, reactions),
       suggestedApproach: generateApproach(riskScore),
       rolloutStrategy: generateRolloutStrategy(decisionScope, reactions),
       createdAt: new Date(),
@@ -118,7 +118,7 @@ export function SimulationForm() {
     setIsSimulating(false)
   }
 
-  const canSimulate = decisionText && driId && teamMembers.length > 0
+  const canSimulate = decisionText && teamMembers.length > 0
 
   return (
     <div className="space-y-6">
@@ -180,16 +180,19 @@ export function SimulationForm() {
         />
       </div>
 
-      {/* DRI Selection */}
+      {/* Decision Implementor Selection */}
       <div className="space-y-2">
         <Label htmlFor="dri" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          Decision Owner (DRI)
+          Decision Implementor (DRI) — Optional
         </Label>
-        <Select value={driId || ""} onValueChange={setDriId}>
+        <Select value={driId || "none"} onValueChange={(value) => setDriId(value === "none" ? null : value)}>
           <SelectTrigger className="h-11">
-            <SelectValue placeholder="Select the decision owner" />
+            <SelectValue placeholder="Select an implementor" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="none">
+              <span className="text-muted-foreground">No specific owner / Company decision</span>
+            </SelectItem>
             {teamMembers.map((member) => (
               <SelectItem key={member.id} value={member.id}>
                 <span className="font-medium">{member.name}</span>
@@ -264,16 +267,17 @@ function generateBehaviors(reaction: ReactionType, status: string | null): strin
   return base
 }
 
-function generateDriBriefing(driName: string, riskScore: number, reactions: PredictedReaction[]): string {
+function generateDriBriefing(driName: string | null, riskScore: number, reactions: PredictedReaction[]): string {
   const resistant = reactions.filter((r) => r.reaction === "Resistant").length
   const highRisk = reactions.filter((r) => r.isHighRisk).length
+  const addressee = driName || "Leadership"
 
   if (riskScore < 30) {
-    return `${driName}, this decision has a low risk profile. The team appears receptive. Focus on clear communication and setting expectations for timeline.`
+    return `${addressee}, this decision has a low risk profile. The team appears receptive. Focus on clear communication and setting expectations for timeline.`
   } else if (riskScore < 60) {
-    return `${driName}, there are ${resistant} potentially resistant team members. Consider 1:1 conversations before the announcement. Pay special attention to the ${highRisk} high-risk individuals identified.`
+    return `${addressee}, there are ${resistant} potentially resistant team members. Consider 1:1 conversations before the announcement. Pay special attention to the ${highRisk} high-risk individuals identified.`
   } else {
-    return `${driName}, this decision carries significant risk. Recommend phased rollout with extensive stakeholder management. The ${resistant} resistant members need direct engagement, and ${highRisk} are flagged as high-risk for attrition.`
+    return `${addressee}, this decision carries significant risk. Recommend phased rollout with extensive stakeholder management. The ${resistant} resistant members need direct engagement, and ${highRisk} are flagged as high-risk for attrition.`
   }
 }
 

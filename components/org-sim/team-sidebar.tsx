@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, Users, Calendar, X, ChevronDown, ChevronUp } from "lucide-react"
+import { useState, useMemo } from "react"
+import { Plus, Users, Calendar, X, ChevronDown, ChevronUp, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,6 +23,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { useOrgSimStore, calculateYearsAtCompany } from "@/lib/store"
 import type { TeamMember, Seniority, Status } from "@/lib/types"
 
@@ -56,6 +61,113 @@ function getStatusColor(status: Status | null): string {
   }
 }
 
+interface DepartmentGroup {
+  name: string
+  members: TeamMember[]
+  managerCount: number
+  reporteeCount: number
+}
+
+function MemberCard({ member, teamMembers, onRemove }: { 
+  member: TeamMember
+  teamMembers: TeamMember[]
+  onRemove: (id: string) => void 
+}) {
+  const years = calculateYearsAtCompany(member.joiningDate)
+  const manager = member.managerId
+    ? teamMembers.find((m) => m.id === member.managerId)
+    : null
+  const reportees = member.reporteeIds
+    .map((id) => teamMembers.find((m) => m.id === id))
+    .filter(Boolean)
+
+  return (
+    <div className="group relative p-3 rounded-lg bg-background border border-border hover:border-primary/30 transition-all">
+      <button
+        onClick={() => onRemove(member.id)}
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded"
+        aria-label={`Remove ${member.name}`}
+      >
+        <X className="h-3 w-3 text-destructive" />
+      </button>
+      <div className="pr-6">
+        <p className="font-medium text-foreground text-sm">{member.name}</p>
+        <p className="text-xs text-muted-foreground">{member.role}</p>
+        
+        {manager && (
+          <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
+            <ChevronUp className="h-3 w-3 text-primary" />
+            <span>Reports to {manager.name}</span>
+          </div>
+        )}
+        
+        {reportees.length > 0 && (
+          <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
+            <ChevronDown className="h-3 w-3 text-accent" />
+            <span>{reportees.length} report{reportees.length > 1 ? 's' : ''}</span>
+          </div>
+        )}
+        
+        <div className="flex items-center gap-2 mt-2">
+          {member.status && (
+            <Badge variant="outline" className={`text-xs py-0 ${getStatusColor(member.status)}`}>
+              {member.status}
+            </Badge>
+          )}
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Calendar className="h-3 w-3" />
+            {years}y
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DepartmentSection({ group, teamMembers, onRemove, defaultOpen = true }: {
+  group: DepartmentGroup
+  teamMembers: TeamMember[]
+  onRemove: (id: string) => void
+  defaultOpen?: boolean
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger className="w-full">
+        <div className="flex items-center justify-between p-3 rounded-lg bg-card border border-border hover:bg-muted/50 transition-colors">
+          <div className="flex items-center gap-2">
+            <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+            <span className="font-medium text-sm text-foreground">{group.name}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs font-normal">
+              {group.members.length} {group.members.length === 1 ? 'person' : 'people'}
+            </Badge>
+            {group.managerCount > 0 && (
+              <Badge variant="outline" className="text-xs font-normal bg-primary/5 border-primary/20 text-primary">
+                {group.managerCount} {group.managerCount === 1 ? 'manager' : 'managers'}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="pl-4 pt-2 space-y-2">
+          {group.members.map((member) => (
+            <MemberCard 
+              key={member.id} 
+              member={member} 
+              teamMembers={teamMembers}
+              onRemove={onRemove}
+            />
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
 export function TeamSidebar() {
   const { teamMembers, addTeamMember, removeTeamMember } = useOrgSimStore()
   const [isOpen, setIsOpen] = useState(false)
@@ -71,6 +183,34 @@ export function TeamSidebar() {
     status: null as Status | null,
     notes: "",
   })
+
+  // Group members by department
+  const departmentGroups = useMemo(() => {
+    const groups: Record<string, DepartmentGroup> = {}
+    
+    teamMembers.forEach((member) => {
+      if (!groups[member.department]) {
+        groups[member.department] = {
+          name: member.department,
+          members: [],
+          managerCount: 0,
+          reporteeCount: 0,
+        }
+      }
+      groups[member.department].members.push(member)
+      
+      // Count managers (people with reportees)
+      if (member.reporteeIds.length > 0) {
+        groups[member.department].managerCount++
+      }
+      // Count reportees (people with a manager)
+      if (member.managerId) {
+        groups[member.department].reporteeCount++
+      }
+    })
+
+    return Object.values(groups).sort((a, b) => b.members.length - a.members.length)
+  }, [teamMembers])
 
   const handleSubmit = () => {
     if (!formData.name || !formData.role || !formData.department) return
@@ -106,7 +246,7 @@ export function TeamSidebar() {
   }
 
   return (
-    <aside className="w-80 border-r border-border bg-card flex flex-col h-full">
+    <aside className="w-80 border-r border-border bg-sidebar flex flex-col h-full">
       <div className="p-5 border-b border-border">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
@@ -115,7 +255,10 @@ export function TeamSidebar() {
             </div>
             <div>
               <h2 className="font-semibold text-foreground text-sm">Team</h2>
-              <p className="text-xs text-muted-foreground">{teamMembers.length} members</p>
+              <p className="text-xs text-muted-foreground">
+                {teamMembers.length} {teamMembers.length === 1 ? 'member' : 'members'}
+                {departmentGroups.length > 0 && ` · ${departmentGroups.length} ${departmentGroups.length === 1 ? 'dept' : 'depts'}`}
+              </p>
             </div>
           </div>
         </div>
@@ -349,7 +492,7 @@ export function TeamSidebar() {
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-4 space-y-2">
+        <div className="p-4 space-y-3">
           {teamMembers.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
@@ -359,69 +502,15 @@ export function TeamSidebar() {
               <p className="text-xs mt-1">Add people to start simulating</p>
             </div>
           ) : (
-            teamMembers.map((member) => {
-              const years = calculateYearsAtCompany(member.joiningDate)
-              const manager = member.managerId
-                ? teamMembers.find((m) => m.id === member.managerId)
-                : null
-              const reportees = member.reporteeIds
-                .map((id) => teamMembers.find((m) => m.id === id))
-                .filter(Boolean)
-              
-              return (
-                <div
-                  key={member.id}
-                  className="group relative p-4 rounded-xl bg-background border border-border hover:border-primary/30 hover:shadow-sm transition-all"
-                >
-                  <button
-                    onClick={() => removeTeamMember(member.id)}
-                    className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive/10 rounded-lg"
-                    aria-label={`Remove ${member.name}`}
-                  >
-                    <X className="h-3.5 w-3.5 text-destructive" />
-                  </button>
-                  <div className="pr-8">
-                    <p className="font-medium text-foreground text-sm">
-                      {member.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {member.role} · {member.department}
-                    </p>
-                    
-                    {/* Manager info */}
-                    {manager && (
-                      <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
-                        <ChevronUp className="h-3 w-3 text-primary" />
-                        <span>Reports to {manager.name}</span>
-                      </div>
-                    )}
-                    
-                    {/* Reportees info */}
-                    {reportees.length > 0 && (
-                      <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
-                        <ChevronDown className="h-3 w-3 text-accent" />
-                        <span>{reportees.length} direct report{reportees.length > 1 ? 's' : ''}</span>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center gap-2 mt-3">
-                      {member.status && (
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${getStatusColor(member.status)}`}
-                        >
-                          {member.status}
-                        </Badge>
-                      )}
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        {years}y
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )
-            })
+            departmentGroups.map((group, index) => (
+              <DepartmentSection
+                key={group.name}
+                group={group}
+                teamMembers={teamMembers}
+                onRemove={removeTeamMember}
+                defaultOpen={index === 0}
+              />
+            ))
           )}
         </div>
       </ScrollArea>

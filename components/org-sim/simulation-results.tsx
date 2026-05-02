@@ -223,14 +223,14 @@ export function SimulationResults() {
           </CardContent>
         </Card>
 
-        {/* DRI Briefing */}
+        {/* Briefing - shows "Leadership Briefing" or "DRI Briefing" */}
         <Card className="border-border shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-3 text-base">
               <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center">
                 <Lightbulb className="h-4 w-4 text-amber-600" />
               </div>
-              DRI Briefing
+              {dri ? "Implementor Briefing" : "Leadership Briefing"}
               {dri && (
                 <Badge variant="secondary" className="ml-auto text-xs font-normal">
                   {dri.name}
