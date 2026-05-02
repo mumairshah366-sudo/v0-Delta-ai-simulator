@@ -34,6 +34,10 @@ interface OrgSimStore {
   setDecisionText: (text: string) => void
   driId: string | null
   setDriId: (id: string | null) => void
+
+  // Company context (persisted across simulations)
+  companyContext: string
+  setCompanyContext: (context: string) => void
 }
 
 export const useOrgSimStore = create<OrgSimStore>((set) => ({
@@ -74,6 +78,10 @@ export const useOrgSimStore = create<OrgSimStore>((set) => ({
   setDecisionText: (text) => set({ decisionText: text }),
   driId: null,
   setDriId: (id) => set({ driId: id }),
+
+  // Company context
+  companyContext: "",
+  setCompanyContext: (context) => set({ companyContext: context }),
 }))
 
 // Helper to get unique departments

@@ -1,12 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { Play, Building2, Users2, User, ChevronDown, FileText } from "lucide-react"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+import { Play, Building2, Users2, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -28,9 +22,6 @@ const SCOPE_OPTIONS: { value: DecisionScope; label: string; icon: React.ReactNod
 ]
 
 export function SimulationForm() {
-  const [companyContext, setCompanyContext] = useState("")
-  const [contextExpanded, setContextExpanded] = useState(false)
-
   const {
     teamMembers,
     decisionScope,
@@ -173,39 +164,6 @@ export function SimulationForm() {
           </Select>
         </div>
       )}
-
-      {/* Company Context - Collapsible */}
-      <Collapsible open={contextExpanded} onOpenChange={setContextExpanded}>
-        <CollapsibleTrigger asChild>
-          <button className="flex items-center justify-between w-full p-3 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 transition-colors group">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FileText className="h-3.5 w-3.5 text-primary" />
-              </div>
-              <div className="text-left">
-                <span className="text-sm font-medium text-foreground">Company Context</span>
-                <span className="text-xs text-muted-foreground ml-2">(Optional)</span>
-              </div>
-            </div>
-            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${contextExpanded ? "rotate-180" : ""}`} />
-          </button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="pt-3">
-          <div className="space-y-2">
-            <Textarea
-              id="company-context"
-              value={companyContext}
-              onChange={(e) => setCompanyContext(e.target.value)}
-              placeholder="Paste key company policies here — WFH rules, bonus criteria, recent announcements, cultural norms..."
-              rows={4}
-              className="resize-none text-sm"
-            />
-            <p className="text-xs text-muted-foreground">
-              This grounds the simulation in your company&apos;s reality
-            </p>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
 
       {/* Decision Text */}
       <div className="space-y-2">

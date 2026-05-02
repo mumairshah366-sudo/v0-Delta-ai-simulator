@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Plus, Users, Calendar, X, ChevronDown, ChevronUp, ChevronRight } from "lucide-react"
+import { Plus, Users, Calendar, X, ChevronDown, ChevronUp, ChevronRight, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -169,8 +169,9 @@ function DepartmentSection({ group, teamMembers, onRemove, defaultOpen = true }:
 }
 
 export function TeamSidebar() {
-  const { teamMembers, addTeamMember, removeTeamMember } = useOrgSimStore()
+  const { teamMembers, addTeamMember, removeTeamMember, companyContext, setCompanyContext } = useOrgSimStore()
   const [isOpen, setIsOpen] = useState(false)
+  const [contextExpanded, setContextExpanded] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     role: "",
@@ -489,6 +490,44 @@ export function TeamSidebar() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Company Context - Collapsible */}
+        <Collapsible open={contextExpanded} onOpenChange={setContextExpanded} className="mt-4">
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center justify-between w-full p-3 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 transition-colors group">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileText className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div className="text-left">
+                  <span className="text-sm font-medium text-foreground">Company Context</span>
+                  <span className="text-xs text-muted-foreground ml-1">(Optional)</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {companyContext && (
+                  <span className="text-xs text-primary font-medium">Set</span>
+                )}
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${contextExpanded ? "rotate-180" : ""}`} />
+              </div>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3">
+            <div className="space-y-2">
+              <Textarea
+                id="company-context"
+                value={companyContext}
+                onChange={(e) => setCompanyContext(e.target.value)}
+                placeholder="Paste key company policies here — WFH rules, bonus criteria, recent announcements, cultural norms..."
+                rows={4}
+                className="resize-none text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                This grounds the simulation in your company&apos;s reality
+              </p>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
       <ScrollArea className="flex-1">
