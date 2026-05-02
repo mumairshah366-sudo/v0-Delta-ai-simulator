@@ -441,9 +441,9 @@ export function BulkUploadModal() {
             </Tabs>
           </div>
         ) : (
-          <div className="flex flex-col min-h-0">
+          <div className="flex flex-col" style={{ maxHeight: 'calc(90vh - 140px)' }}>
             {/* Preview Header */}
-            <div className="flex items-center justify-between py-3 border-b border-border flex-shrink-0">
+            <div className="flex items-center justify-between py-3 border-b border-border">
               <div className="flex items-center gap-3">
                 <Badge variant="secondary" className="bg-primary/10 text-primary">
                   {validCount} {validCount === 1 ? "employee" : "employees"} ready to import
@@ -463,9 +463,9 @@ export function BulkUploadModal() {
               </Button>
             </div>
 
-            {/* Preview Table - constrained height */}
-            <ScrollArea className="max-h-[40vh] mt-3">
-              <div className="space-y-2 pr-4">
+            {/* Preview Table - scrollable area with fixed height */}
+            <div className="flex-1 overflow-auto mt-3 min-h-0">
+              <div className="space-y-2 pr-2">
                 {parsedMembers.map((member) => (
                   <div
                     key={member.id}
@@ -519,10 +519,10 @@ export function BulkUploadModal() {
                   </div>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
 
             {/* Import Button - always visible at bottom */}
-            <div className="pt-4 border-t border-border mt-3 flex-shrink-0">
+            <div className="pt-4 border-t border-border mt-3">
               <Button
                 onClick={handleImportAll}
                 disabled={validCount === 0}
