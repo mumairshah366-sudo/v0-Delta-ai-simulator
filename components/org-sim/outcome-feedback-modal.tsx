@@ -30,6 +30,7 @@ import type {
   MemberOutcome,
   SimulationOutcome 
 } from "@/lib/types"
+import { updateDeltaMemoryOutcome } from "./delta-memory-panel"
 
 const OUTCOME_RESULTS: OutcomeResult[] = [
   "Better than predicted",
@@ -89,6 +90,13 @@ export function OutcomeFeedbackModal({ simulation }: OutcomeFeedbackModalProps) 
     }
 
     updateSimulationOutcome(simulation.id, outcome)
+
+    // Update Delta Memory for each member with actual reaction
+    outcomes.forEach((o) => {
+      if (o.actualReaction) {
+        updateDeltaMemoryOutcome(o.memberId, o.actualReaction)
+      }
+    })
 
     // Send to Mubit for learning
     try {

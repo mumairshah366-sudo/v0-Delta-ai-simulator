@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select"
 import { useDeltaStore, getUniqueDepartments } from "@/lib/store"
 import type { DecisionScope, PastSimulation, SimulationResult, ReactionType, PredictedReaction } from "@/lib/types"
+import { updateDeltaMemory } from "./delta-memory-panel"
 import { Spinner } from "@/components/ui/spinner"
 
 const SCOPE_OPTIONS: { value: DecisionScope; label: string; icon: React.ReactNode }[] = [
@@ -134,6 +135,11 @@ export function SimulationForm() {
 
       setCurrentSimulation(result)
 
+      // Update Delta Memory for each affected member
+      reactions.forEach((r) => {
+        updateDeltaMemory(r.memberId, r.member.name, decisionText, r.reaction)
+      })
+
       const pastSim: PastSimulation = {
         id: result.id,
         decision: decisionText,
@@ -192,6 +198,11 @@ export function SimulationForm() {
       }
 
       setCurrentSimulation(result)
+
+      // Update Delta Memory for each affected member
+      reactions.forEach((r) => {
+        updateDeltaMemory(r.memberId, r.member.name, decisionText, r.reaction)
+      })
 
       const pastSim: PastSimulation = {
         id: result.id,

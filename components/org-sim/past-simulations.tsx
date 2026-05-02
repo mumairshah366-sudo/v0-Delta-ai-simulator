@@ -1,10 +1,12 @@
 "use client"
 
-import { History, Clock, ChevronRight, Check } from "lucide-react"
+import { useState, useEffect } from "react"
+import { History, Clock, ChevronRight, Check, MessageSquare } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { useDeltaStore } from "@/lib/store"
 import { OutcomeFeedbackModal } from "./outcome-feedback-modal"
+import { FollowUpNotes, getNotesCount } from "./follow-up-notes"
 
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -76,6 +78,9 @@ export function PastSimulations() {
                 <div className="mt-2 pt-2 border-t border-border">
                   <OutcomeFeedbackModal simulation={sim} />
                 </div>
+                
+                {/* Follow-up Notes Thread - only shown if outcome is recorded */}
+                <FollowUpNotes simulationId={sim.id} hasOutcome={!!sim.outcome} />
               </div>
             ))}
           </div>

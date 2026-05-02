@@ -31,6 +31,7 @@ import {
 import { useDeltaStore, calculateYearsAtCompany } from "@/lib/store"
 import type { TeamMember, Seniority, Status, PreviousIndustry } from "@/lib/types"
 import { BulkUploadModal } from "./bulk-upload-modal"
+import { DeltaMemoryPanel } from "./delta-memory-panel"
 
 const SENIORITY_OPTIONS: Seniority[] = ["Junior", "Mid", "Senior"]
 const STATUS_OPTIONS: Status[] = [
@@ -133,6 +134,9 @@ function MemberCard({ member, teamMembers, onRemove }: {
             {years}y
           </span>
         </div>
+        
+        {/* Delta Memory Panel */}
+        <DeltaMemoryPanel personId={member.id} />
       </div>
     </div>
   )

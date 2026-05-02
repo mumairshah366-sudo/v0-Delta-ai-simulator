@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useDeltaStore, calculateYearsAtCompany } from "@/lib/store"
 import type { ReactionType, PredictedReaction } from "@/lib/types"
+import { ActionPlanModal } from "./action-plan-modal"
 
 function getReactionIcon(reaction: ReactionType) {
   switch (reaction) {
@@ -319,6 +320,9 @@ export function SimulationResults() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Generate Action Plan Button */}
+        <ActionPlanModal simulation={currentSimulation} />
 
         {/* Predicted Reactions */}
         <div>
