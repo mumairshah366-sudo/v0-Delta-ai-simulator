@@ -100,11 +100,22 @@ USE THIS DATA TO GROUND YOUR PREDICTIONS. Reference specific statistics where re
 
 ` + DELTA_DATA_ENGINE
 
-  const userPrompt = `Team members: ${JSON.stringify(members)}
+  // Format members with all available context including age and industry
+  const formattedMembers = members.map((m: Record<string, unknown>) => ({
+    ...m,
+    age: m.age || 'Not specified',
+    previousIndustry: m.previousIndustry || 'Not specified',
+  }))
+
+  const userPrompt = `Team members: ${JSON.stringify(formattedMembers)}
 Decision: ${decision}
 Scope: ${scope}
 DRI: ${dri || 'No specific owner - company decision'}
-Company context: ${companyContext || 'None provided'}`
+Company context: ${companyContext || 'None provided'}
+
+Note: Consider each person's age and previous industry background when predicting reactions. 
+Younger employees (18-25) may be more adaptable but also 3x more likely to leave during major changes.
+Industry background affects expectations - e.g., someone from Government may expect more process, while Tech/Startup expects faster iteration.`
 
   try {
     const aiResponse = await fetch('https://api.vercel.ai/v1/chat/completions', {

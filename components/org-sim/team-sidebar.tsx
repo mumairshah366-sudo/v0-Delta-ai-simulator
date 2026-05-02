@@ -29,7 +29,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { useDeltaStore, calculateYearsAtCompany } from "@/lib/store"
-import type { TeamMember, Seniority, Status } from "@/lib/types"
+import type { TeamMember, Seniority, Status, PreviousIndustry } from "@/lib/types"
 import { BulkUploadModal } from "./bulk-upload-modal"
 
 const SENIORITY_OPTIONS: Seniority[] = ["Junior", "Mid", "Senior"]
@@ -40,6 +40,19 @@ const STATUS_OPTIONS: Status[] = [
   "High performer",
   "New joiner",
   "At risk of leaving",
+]
+
+const PREVIOUS_INDUSTRY_OPTIONS: PreviousIndustry[] = [
+  "Tech/Startup",
+  "Finance",
+  "Banking",
+  "Healthcare",
+  "Retail",
+  "Consulting",
+  "Government",
+  "Legal",
+  "Education",
+  "Other",
 ]
 
 function getStatusColor(status: Status | null): string {
@@ -184,6 +197,8 @@ export function TeamSidebar() {
     npsScore: "" as string,
     status: null as Status | null,
     notes: "",
+    age: "" as string,
+    previousIndustry: null as PreviousIndustry | null,
   })
 
   // Group members by department
@@ -229,6 +244,8 @@ export function TeamSidebar() {
       npsScore: formData.npsScore ? parseInt(formData.npsScore) : null,
       status: formData.status,
       notes: formData.notes,
+      age: formData.age ? parseInt(formData.age) : null,
+      previousIndustry: formData.previousIndustry,
     }
 
     addTeamMember(newMember)
@@ -244,6 +261,8 @@ export function TeamSidebar() {
       npsScore: "",
       status: null,
       notes: "",
+      age: "",
+      previousIndustry: null,
     })
   }
 
@@ -444,6 +463,47 @@ export function TeamSidebar() {
                     }
                     placeholder="Optional"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="age">Age (Optional)</Label>
+                  <Input
+                    id="age"
+                    type="number"
+                    min={18}
+                    max={100}
+                    value={formData.age}
+                    onChange={(e) =>
+                      setFormData({ ...formData, age: e.target.value })
+                    }
+                    placeholder="e.g. 32"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="previousIndustry">Previous Industry (Optional)</Label>
+                  <Select
+                    value={formData.previousIndustry || "none"}
+                    onValueChange={(value) =>
+                      setFormData({ 
+                        ...formData, 
+                        previousIndustry: value === "none" ? null : value as PreviousIndustry 
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select industry" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not specified</SelectItem>
+                      {PREVIOUS_INDUSTRY_OPTIONS.map((ind) => (
+                        <SelectItem key={ind} value={ind}>
+                          {ind}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

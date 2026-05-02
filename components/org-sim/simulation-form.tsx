@@ -1,6 +1,6 @@
 "use client"
 
-import { Play, Building2, Users2, User } from "lucide-react"
+import { Play, Building2, Users2, User, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -73,6 +73,8 @@ export function SimulationForm() {
             ),
             isManager: m.reporteeIds.length > 0,
             reporteeCount: m.reporteeIds.length,
+            age: m.age,
+            previousIndustry: m.previousIndustry,
           })),
           decision: decisionText,
           scope: decisionScope,
@@ -139,7 +141,7 @@ export function SimulationForm() {
         riskScore,
         createdAt: new Date(),
       }
-      addPastSimulation(pastSim)
+      addPastSimulation(pastSim, reactions)
     } catch (error) {
       console.error('Simulation failed:', error)
       // Fallback to mock if API fails
@@ -198,7 +200,7 @@ export function SimulationForm() {
         riskScore,
         createdAt: new Date(),
       }
-      addPastSimulation(pastSim)
+      addPastSimulation(pastSim, reactions)
     } finally {
       setIsSimulating(false)
     }
@@ -287,6 +289,18 @@ export function SimulationForm() {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Data Attribution Banner */}
+      <div className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-muted/50 border border-border">
+        <Zap className="h-3 w-3 text-amber-500" />
+        <span className="text-xs text-muted-foreground">Powered by</span>
+        <div className="flex items-center gap-1.5">
+          <span className="px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">Bright Data</span>
+          <span className="px-1.5 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700 rounded">IBM HR</span>
+          <span className="px-1.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded">MH Survey</span>
+          <span className="px-1.5 py-0.5 text-xs font-medium bg-orange-100 text-orange-700 rounded">Mubit</span>
+        </div>
       </div>
 
       {/* Run Button */}

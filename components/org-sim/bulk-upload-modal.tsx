@@ -22,7 +22,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import { useDeltaStore } from "@/lib/store"
-import type { TeamMember, Seniority, Status } from "@/lib/types"
+import type { TeamMember, Seniority, Status, PreviousIndustry } from "@/lib/types"
 
 interface ParsedMember {
   id: string
@@ -34,6 +34,8 @@ interface ParsedMember {
   npsScore: number | null
   notes: string
   joiningDate: Date
+  age: number | null
+  previousIndustry: PreviousIndustry | null
   isValid: boolean
   errors: string[]
 }
@@ -47,6 +49,18 @@ const VALID_STATUSES: Status[] = [
   "New joiner",
   "At risk of leaving",
 ]
+const VALID_INDUSTRIES: PreviousIndustry[] = [
+  "Tech/Startup",
+  "Finance",
+  "Banking",
+  "Healthcare",
+  "Retail",
+  "Consulting",
+  "Government",
+  "Legal",
+  "Education",
+  "Other",
+]
 
 function parseRow(row: Record<string, unknown>): ParsedMember {
   const errors: string[] = []
@@ -59,6 +73,8 @@ function parseRow(row: Record<string, unknown>): ParsedMember {
   const npsRaw = row["NPS Score"] || row["nps_score"] || row["NPS"] || row["nps"] || ""
   const notes = String(row["Notes"] || row["notes"] || "").trim()
   const joiningDateRaw = row["Joining Date"] || row["joining_date"] || row["JoiningDate"] || ""
+  const ageRaw = row["Age"] || row["age"] || ""
+  const industryRaw = String(row["Previous Industry"] || row["previous_industry"] || row["PreviousIndustry"] || "").trim()
 
   if (!name) errors.push("Name is required")
   if (!role) errors.push("Role is required")
@@ -102,6 +118,26 @@ function parseRow(row: Record<string, unknown>): ParsedMember {
     }
   }
 
+  // Parse age
+  let age: number | null = null
+  if (ageRaw !== "" && ageRaw !== null && ageRaw !== undefined) {
+    const parsed = parseInt(String(ageRaw), 10)
+    if (!isNaN(parsed) && parsed >= 18 && parsed <= 100) {
+      age = parsed
+    }
+  }
+
+  // Parse previous industry
+  let previousIndustry: PreviousIndustry | null = null
+  if (industryRaw) {
+    const industryMatch = VALID_INDUSTRIES.find(
+      ind => ind.toLowerCase() === industryRaw.toLowerCase()
+    )
+    if (industryMatch) {
+      previousIndustry = industryMatch
+    }
+  }
+
   return {
     id: crypto.randomUUID(),
     name,
@@ -112,6 +148,8 @@ function parseRow(row: Record<string, unknown>): ParsedMember {
     npsScore,
     notes,
     joiningDate,
+    age,
+    previousIndustry,
     isValid: errors.length === 0,
     errors,
   }
@@ -157,10 +195,10 @@ function parseCSV(text: string): ParsedMember[] {
 }
 
 function generateTemplate(): void {
-  const headers = ["Name", "Role", "Department", "Seniority", "Status", "NPS Score", "Notes", "Joining Date"]
+  const headers = ["Name", "Role", "Department", "Seniority", "Status", "NPS Score", "Notes", "Joining Date", "Age", "Previous Industry"]
   const exampleRows = [
-    ["John Smith", "Software Engineer", "Engineering", "Mid", "High performer", "8", "Great team player", "2022-03-15"],
-    ["Jane Doe", "Marketing Manager", "Marketing", "Senior", "Recently Promoted", "9", "Just promoted to lead", "2021-07-01"],
+    ["John Smith", "Software Engineer", "Engineering", "Mid", "High performer", "8", "Great team player", "2022-03-15", "32", "Tech/Startup"],
+    ["Jane Doe", "Marketing Manager", "Marketing", "Senior", "Recently Promoted", "9", "Just promoted to lead", "2021-07-01", "38", "Consulting"],
   ]
 
   const ws = XLSX.utils.aoa_to_sheet([headers, ...exampleRows])
@@ -177,6 +215,8 @@ function generateTemplate(): void {
     { wch: 10 }, // NPS Score
     { wch: 30 }, // Notes
     { wch: 15 }, // Joining Date
+    { wch: 8 },  // Age
+    { wch: 18 }, // Previous Industry
   ]
 
   XLSX.writeFile(wb, "team-members-template.xlsx")
@@ -269,6 +309,8 @@ export function BulkUploadModal() {
         npsScore: member.npsScore,
         status: member.status,
         notes: member.notes,
+        age: member.age,
+        previousIndustry: member.previousIndustry,
       }
       addTeamMember(newMember)
     })

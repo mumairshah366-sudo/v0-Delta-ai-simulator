@@ -10,7 +10,27 @@ export type Status =
 
 export type ReactionType = "Supportive" | "Neutral" | "Resistant"
 
+export type ActualReaction = "Supportive" | "Neutral" | "Resistant" | "Left company"
+
 export type DecisionScope = "Company" | "Department" | "Individual"
+
+export type PreviousIndustry = 
+  | "Tech/Startup"
+  | "Finance"
+  | "Banking"
+  | "Healthcare"
+  | "Retail"
+  | "Consulting"
+  | "Government"
+  | "Legal"
+  | "Education"
+  | "Other"
+
+export type OutcomeResult = 
+  | "Better than predicted"
+  | "As predicted"
+  | "Worse than predicted"
+  | "Decision was reversed"
 
 export interface TeamMember {
   id: string
@@ -24,6 +44,8 @@ export interface TeamMember {
   npsScore: number | null
   status: Status | null
   notes: string
+  age: number | null
+  previousIndustry: PreviousIndustry | null
 }
 
 export interface PredictedReaction {
@@ -52,10 +74,26 @@ export interface SimulationResult {
   createdAt: Date
 }
 
+export interface MemberOutcome {
+  memberId: string
+  name: string
+  predictedReaction: ReactionType
+  actualReaction: ActualReaction | null
+}
+
+export interface SimulationOutcome {
+  actualOutcome: string
+  overallResult: OutcomeResult
+  memberOutcomes: MemberOutcome[]
+  recordedAt: Date
+}
+
 export interface PastSimulation {
   id: string
   decision: string
   scope: DecisionScope
   riskScore: number
   createdAt: Date
+  reactions?: PredictedReaction[]
+  outcome?: SimulationOutcome
 }

@@ -6,6 +6,8 @@ import type {
   SimulationResult,
   PastSimulation,
   DecisionScope,
+  SimulationOutcome,
+  PredictedReaction,
 } from "./types"
 
 interface DeltaStore {
@@ -23,7 +25,8 @@ interface DeltaStore {
 
   // Past simulations
   pastSimulations: PastSimulation[]
-  addPastSimulation: (simulation: PastSimulation) => void
+  addPastSimulation: (simulation: PastSimulation, reactions?: PredictedReaction[]) => void
+  updateSimulationOutcome: (simulationId: string, outcome: SimulationOutcome) => void
 
   // Decision form state
   decisionScope: DecisionScope
@@ -64,9 +67,15 @@ export const useDeltaStore = create<DeltaStore>((set) => ({
 
   // Past simulations
   pastSimulations: [],
-  addPastSimulation: (simulation) =>
+  addPastSimulation: (simulation, reactions) =>
     set((state) => ({
-      pastSimulations: [simulation, ...state.pastSimulations],
+      pastSimulations: [{ ...simulation, reactions }, ...state.pastSimulations],
+    })),
+  updateSimulationOutcome: (simulationId, outcome) =>
+    set((state) => ({
+      pastSimulations: state.pastSimulations.map((sim) =>
+        sim.id === simulationId ? { ...sim, outcome } : sim
+      ),
     })),
 
   // Decision form state
