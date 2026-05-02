@@ -617,74 +617,70 @@ export function TeamSidebar() {
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-3">
             <div className="space-y-3">
-              {/* File Upload - accepts text files */}
-              <div className="relative">
-                <input
-                  type="file"
-                  accept=".txt,.md,.csv,.json"
-                  onChange={handleFileUpload}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  disabled={isUploadingPdf}
-                />
-                <div className={`flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-lg transition-colors ${
-                  isUploadingPdf ? 'border-primary/50 bg-primary/5' : 
-                  pdfUploadSuccess ? 'border-emerald-500 bg-emerald-50' :
-                  'border-border hover:border-primary/50 hover:bg-muted/50'
-                }`}>
-                  {isUploadingPdf ? (
-                    <>
-                      <Loader2 className="h-4 w-4 text-primary animate-spin" />
-                      <span className="text-sm text-muted-foreground">Reading file...</span>
-                    </>
-                  ) : pdfUploadSuccess ? (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      <span className="text-sm text-emerald-700 font-medium">File uploaded successfully!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        Upload text file (.txt, .md)
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Show uploaded file as attachment badge */}
-              {uploadedFileName && !pdfUploadSuccess && (
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/20">
-                  <File className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-foreground flex-1 truncate">{uploadedFileName}</span>
+              {/* Show uploaded file OR upload option */}
+              {uploadedFileName ? (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                  <File className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                  <span className="text-sm text-emerald-800 flex-1 truncate font-medium">{uploadedFileName}</span>
                   <button
                     onClick={() => {
                       setUploadedFileName(null)
                       setCompanyContext('')
                     }}
-                    className="p-1 hover:bg-primary/10 rounded"
+                    className="p-1 hover:bg-emerald-100 rounded"
                   >
-                    <X className="h-3 w-3 text-muted-foreground" />
+                    <X className="h-3 w-3 text-emerald-600" />
                   </button>
                 </div>
+              ) : (
+                <>
+                  {/* File Upload - accepts text files */}
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".txt,.md,.csv,.json"
+                      onChange={handleFileUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      disabled={isUploadingPdf}
+                    />
+                    <div className={`flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-lg transition-colors ${
+                      isUploadingPdf ? 'border-primary/50 bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                    }`}>
+                      {isUploadingPdf ? (
+                        <>
+                          <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                          <span className="text-sm text-muted-foreground">Reading file...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            Upload text file (.txt, .md)
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground">or paste text</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+
+                  <Textarea
+                    id="company-context"
+                    value={companyContext}
+                    onChange={(e) => setCompanyContext(e.target.value)}
+                    placeholder="Paste key company policies here — WFH rules, bonus criteria, recent announcements, cultural norms..."
+                    rows={4}
+                    className="resize-none text-sm"
+                  />
+                </>
               )}
-
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground">or paste/edit text</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-
-              <Textarea
-                id="company-context"
-                value={companyContext}
-                onChange={(e) => setCompanyContext(e.target.value)}
-                placeholder="Paste key company policies here — WFH rules, bonus criteria, recent announcements, cultural norms..."
-                rows={4}
-                className="resize-none text-sm"
-              />
               <p className="text-xs text-muted-foreground">
-                This grounds the simulation in your company&apos;s reality
+                {uploadedFileName ? 'File loaded. Context will be used in simulations.' : 'This grounds the simulation in your company\'s reality'}
               </p>
             </div>
           </CollapsibleContent>
