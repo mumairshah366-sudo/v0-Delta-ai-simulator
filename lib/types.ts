@@ -22,7 +22,7 @@ export interface TeamMember {
   reporteeIds: string[]
   joiningDate: Date
   npsScore: number | null
-  status: Status
+  status: Status | null
   notes: string
 }
 

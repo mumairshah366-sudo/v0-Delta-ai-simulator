@@ -11,13 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useOrgSimStore, getUniqueDepartments } from "@/lib/store"
 import type { DecisionScope, PastSimulation, SimulationResult, ReactionType, PredictedReaction } from "@/lib/types"
 import { Spinner } from "@/components/ui/spinner"
 
 const SCOPE_OPTIONS: { value: DecisionScope; label: string; icon: React.ReactNode }[] = [
-  { value: "Company", label: "Company", icon: <Building2 className="h-4 w-4" /> },
+  { value: "Company", label: "Company-wide", icon: <Building2 className="h-4 w-4" /> },
   { value: "Department", label: "Department", icon: <Users2 className="h-4 w-4" /> },
   { value: "Individual", label: "Individual", icon: <User className="h-4 w-4" /> },
 ]
@@ -123,32 +122,36 @@ export function SimulationForm() {
 
   return (
     <div className="space-y-6">
+      {/* Scope Selection */}
       <div className="space-y-3">
-        <Label className="text-sm text-muted-foreground">Decision affects</Label>
-        <ToggleGroup
-          type="single"
-          value={decisionScope}
-          onValueChange={(value) => value && setDecisionScope(value as DecisionScope)}
-          className="justify-start"
-        >
+        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          Decision Scope
+        </Label>
+        <div className="grid grid-cols-3 gap-2">
           {SCOPE_OPTIONS.map((option) => (
-            <ToggleGroupItem
+            <button
               key={option.value}
-              value={option.value}
-              className="gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+              onClick={() => setDecisionScope(option.value)}
+              className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                decisionScope === option.value
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border bg-background hover:border-primary/30 text-muted-foreground hover:text-foreground"
+              }`}
             >
               {option.icon}
-              {option.label}
-            </ToggleGroupItem>
+              <span className="text-xs font-medium">{option.label}</span>
+            </button>
           ))}
-        </ToggleGroup>
+        </div>
       </div>
 
       {decisionScope === "Department" && (
         <div className="space-y-2">
-          <Label htmlFor="department">Select Department</Label>
+          <Label htmlFor="department" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Select Department
+          </Label>
           <Select value={selectedDepartment || ""} onValueChange={setSelectedDepartment}>
-            <SelectTrigger>
+            <SelectTrigger className="h-11">
               <SelectValue placeholder="Choose a department" />
             </SelectTrigger>
             <SelectContent>
@@ -162,38 +165,46 @@ export function SimulationForm() {
         </div>
       )}
 
+      {/* Decision Text */}
       <div className="space-y-2">
-        <Label htmlFor="decision">What decision do you want to simulate?</Label>
+        <Label htmlFor="decision" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          Decision to Simulate
+        </Label>
         <Textarea
           id="decision"
           value={decisionText}
           onChange={(e) => setDecisionText(e.target.value)}
-          placeholder="I want to mandate AI tool usage across the team"
+          placeholder="e.g., Mandate AI tool usage across the team"
           rows={4}
-          className="resize-none"
+          className="resize-none text-sm"
         />
       </div>
 
+      {/* DRI Selection */}
       <div className="space-y-2">
-        <Label htmlFor="dri">Who is the DRI for this decision?</Label>
+        <Label htmlFor="dri" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          Decision Owner (DRI)
+        </Label>
         <Select value={driId || ""} onValueChange={setDriId}>
-          <SelectTrigger>
+          <SelectTrigger className="h-11">
             <SelectValue placeholder="Select the decision owner" />
           </SelectTrigger>
           <SelectContent>
             {teamMembers.map((member) => (
               <SelectItem key={member.id} value={member.id}>
-                {member.name} ({member.role})
+                <span className="font-medium">{member.name}</span>
+                <span className="text-muted-foreground ml-1">({member.role})</span>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
+      {/* Run Button */}
       <Button
         onClick={handleRunSimulation}
         disabled={!canSimulate || isSimulating}
-        className="w-full h-12 text-base"
+        className="w-full h-12 text-sm font-medium"
         size="lg"
       >
         {isSimulating ? (
@@ -203,16 +214,22 @@ export function SimulationForm() {
           </>
         ) : (
           <>
-            <Play className="h-5 w-5 mr-2" />
+            <Play className="h-4 w-4 mr-2" />
             Run Simulation
           </>
         )}
       </Button>
+
+      {teamMembers.length === 0 && (
+        <p className="text-xs text-center text-muted-foreground">
+          Add team members to run a simulation
+        </p>
+      )}
     </div>
   )
 }
 
-function generateBehaviors(reaction: ReactionType, status: string): string[] {
+function generateBehaviors(reaction: ReactionType, status: string | null): string[] {
   const behaviors: Record<ReactionType, string[]> = {
     Supportive: [
       "Will likely advocate for the change in team discussions",
@@ -241,7 +258,7 @@ function generateBehaviors(reaction: ReactionType, status: string): string[] {
   }
 
   const base = behaviors[reaction].slice(0, 2)
-  if (statusBehaviors[status]) {
+  if (status && statusBehaviors[status]) {
     base.push(statusBehaviors[status])
   }
   return base

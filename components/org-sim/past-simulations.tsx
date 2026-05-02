@@ -15,9 +15,9 @@ function formatDate(date: Date): string {
 }
 
 function getRiskColor(score: number): string {
-  if (score < 30) return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-  if (score < 60) return "bg-amber-500/20 text-amber-400 border-amber-500/30"
-  return "bg-red-500/20 text-red-400 border-red-500/30"
+  if (score < 30) return "bg-emerald-100 text-emerald-700 border-emerald-200"
+  if (score < 60) return "bg-amber-100 text-amber-700 border-amber-200"
+  return "bg-red-100 text-red-700 border-red-200"
 }
 
 export function PastSimulations() {
@@ -28,16 +28,16 @@ export function PastSimulations() {
   }
 
   return (
-    <div className="flex-shrink-0 border-t border-border bg-card/30 backdrop-blur-sm">
+    <div className="flex-shrink-0 border-t border-border bg-card">
       <div className="px-6 py-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="p-1.5 rounded-lg bg-primary/10">
-            <History className="h-3.5 w-3.5 text-primary" />
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+            <History className="h-4 w-4 text-primary" />
           </div>
-          <h3 className="text-sm font-medium text-foreground">Past Simulations</h3>
-          <span className="text-xs text-muted-foreground ml-auto">
-            {pastSimulations.length} total
-          </span>
+          <div className="flex-1">
+            <h3 className="text-sm font-medium text-foreground">Past Simulations</h3>
+            <p className="text-xs text-muted-foreground">{pastSimulations.length} total</p>
+          </div>
         </div>
 
         <ScrollArea className="w-full">
@@ -45,23 +45,23 @@ export function PastSimulations() {
             {pastSimulations.map((sim) => (
               <div
                 key={sim.id}
-                className="flex-shrink-0 w-64 p-3 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer group"
+                className="flex-shrink-0 w-72 p-4 rounded-xl bg-background border border-border hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer group"
               >
-                <div className="flex items-start justify-between mb-2">
-                  <Badge variant="outline" className="text-xs">
+                <div className="flex items-start justify-between mb-3">
+                  <Badge variant="outline" className="text-xs bg-muted/50">
                     {sim.scope}
                   </Badge>
                   <Badge variant="outline" className={getRiskColor(sim.riskScore)}>
                     Risk: {sim.riskScore}
                   </Badge>
                 </div>
-                <p className="text-sm text-foreground line-clamp-2 mb-2">
+                <p className="text-sm text-foreground line-clamp-2 mb-3 font-medium">
                   {sim.decision}
                 </p>
                 <div className="flex items-center text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3 mr-1" />
+                  <Clock className="h-3 w-3 mr-1.5" />
                   {formatDate(sim.createdAt)}
-                  <ChevronRight className="h-3 w-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ChevronRight className="h-3 w-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
                 </div>
               </div>
             ))}

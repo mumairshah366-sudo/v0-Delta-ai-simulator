@@ -36,22 +36,23 @@ const STATUS_OPTIONS: Status[] = [
   "At risk of leaving",
 ]
 
-function getStatusColor(status: Status): string {
+function getStatusColor(status: Status | null): string {
+  if (!status) return "bg-secondary text-secondary-foreground border-border"
   switch (status) {
     case "High performer":
-      return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+      return "bg-emerald-100 text-emerald-700 border-emerald-200"
     case "Recently Promoted":
-      return "bg-blue-500/20 text-blue-400 border-blue-500/30"
+      return "bg-blue-100 text-blue-700 border-blue-200"
     case "New joiner":
-      return "bg-sky-500/20 text-sky-400 border-sky-500/30"
+      return "bg-sky-100 text-sky-700 border-sky-200"
     case "On PIP":
-      return "bg-red-500/20 text-red-400 border-red-500/30"
+      return "bg-red-100 text-red-700 border-red-200"
     case "At risk of leaving":
-      return "bg-orange-500/20 text-orange-400 border-orange-500/30"
+      return "bg-orange-100 text-orange-700 border-orange-200"
     case "No raise 3+ months":
-      return "bg-amber-500/20 text-amber-400 border-amber-500/30"
+      return "bg-amber-100 text-amber-700 border-amber-200"
     default:
-      return "bg-muted text-muted-foreground"
+      return "bg-secondary text-secondary-foreground border-border"
   }
 }
 
@@ -67,7 +68,7 @@ export function TeamSidebar() {
     reporteeIds: [] as string[],
     joiningDate: new Date().toISOString().split("T")[0],
     npsScore: "" as string,
-    status: "New joiner" as Status,
+    status: null as Status | null,
     notes: "",
   })
 
@@ -99,20 +100,24 @@ export function TeamSidebar() {
       reporteeIds: [],
       joiningDate: new Date().toISOString().split("T")[0],
       npsScore: "",
-      status: "New joiner",
+      status: null,
       notes: "",
     })
   }
 
   return (
-    <aside className="w-80 border-r border-border bg-sidebar flex flex-col h-full">
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center gap-2 mb-4">
-          <Users className="h-5 w-5 text-primary" />
-          <h2 className="font-semibold text-foreground">Team Members</h2>
-          <span className="ml-auto text-sm text-muted-foreground">
-            {teamMembers.length}
-          </span>
+    <aside className="w-80 border-r border-border bg-card flex flex-col h-full">
+      <div className="p-5 border-b border-border">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Users className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-foreground text-sm">Team</h2>
+              <p className="text-xs text-muted-foreground">{teamMembers.length} members</p>
+            </div>
+          </div>
         </div>
 
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -126,10 +131,10 @@ export function TeamSidebar() {
             <DialogHeader>
               <DialogTitle>Add Team Member</DialogTitle>
               <DialogDescription>
-                Add a new team member to simulate how they&apos;ll react to organizational decisions.
+                Add a new team member to simulate how they&apos;ll react to decisions.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-5 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Name</Label>
@@ -216,7 +221,7 @@ export function TeamSidebar() {
 
               <div className="space-y-2">
                 <Label htmlFor="reportees">Direct Reportees</Label>
-                <div className="flex flex-wrap gap-2 p-2 min-h-[40px] rounded-md border border-input bg-input">
+                <div className="flex flex-wrap gap-2 p-3 min-h-[44px] rounded-lg border border-input bg-muted/50">
                   {formData.reporteeIds.length === 0 ? (
                     <span className="text-sm text-muted-foreground">No reportees selected</span>
                   ) : (
@@ -226,7 +231,7 @@ export function TeamSidebar() {
                         <Badge
                           key={id}
                           variant="secondary"
-                          className="flex items-center gap-1 cursor-pointer hover:bg-destructive/20"
+                          className="flex items-center gap-1.5 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors"
                           onClick={() =>
                             setFormData({
                               ...formData,
@@ -269,19 +274,18 @@ export function TeamSidebar() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="joiningDate">Joining Date</Label>
-                <Input
-                  id="joiningDate"
-                  type="date"
-                  value={formData.joiningDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, joiningDate: e.target.value })
-                  }
-                />
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="joiningDate">Joining Date</Label>
+                  <Input
+                    id="joiningDate"
+                    type="date"
+                    value={formData.joiningDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, joiningDate: e.target.value })
+                    }
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="npsScore">NPS Score (0-10)</Label>
                   <Input
@@ -296,26 +300,31 @@ export function TeamSidebar() {
                     placeholder="Optional"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value: Status) =>
-                      setFormData({ ...formData, status: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="status">Status (Optional)</Label>
+                <Select
+                  value={formData.status || "none"}
+                  onValueChange={(value) =>
+                    setFormData({ 
+                      ...formData, 
+                      status: value === "none" ? null : value as Status 
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No status</SelectItem>
+                    {STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -340,12 +349,14 @@ export function TeamSidebar() {
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-2">
+        <div className="p-4 space-y-2">
           {teamMembers.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No team members yet</p>
-              <p className="text-xs">Add people to start simulating</p>
+            <div className="text-center py-12 text-muted-foreground">
+              <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
+                <Users className="h-6 w-6 opacity-40" />
+              </div>
+              <p className="text-sm font-medium">No team members yet</p>
+              <p className="text-xs mt-1">Add people to start simulating</p>
             </div>
           ) : (
             teamMembers.map((member) => {
@@ -360,46 +371,48 @@ export function TeamSidebar() {
               return (
                 <div
                   key={member.id}
-                  className="group relative p-3 rounded-xl bg-card border border-border hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all"
+                  className="group relative p-4 rounded-xl bg-background border border-border hover:border-primary/30 hover:shadow-sm transition-all"
                 >
                   <button
                     onClick={() => removeTeamMember(member.id)}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive/20 rounded-lg"
+                    className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive/10 rounded-lg"
                     aria-label={`Remove ${member.name}`}
                   >
-                    <X className="h-3 w-3 text-destructive" />
+                    <X className="h-3.5 w-3.5 text-destructive" />
                   </button>
-                  <div className="pr-6">
+                  <div className="pr-8">
                     <p className="font-medium text-foreground text-sm">
                       {member.name}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {member.role} · {member.department}
                     </p>
                     
                     {/* Manager info */}
                     {manager && (
-                      <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
-                        <ChevronUp className="h-3 w-3 text-primary/60" />
+                      <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+                        <ChevronUp className="h-3 w-3 text-primary" />
                         <span>Reports to {manager.name}</span>
                       </div>
                     )}
                     
                     {/* Reportees info */}
                     {reportees.length > 0 && (
-                      <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                        <ChevronDown className="h-3 w-3 text-accent/60" />
+                      <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                        <ChevronDown className="h-3 w-3 text-accent" />
                         <span>{reportees.length} direct report{reportees.length > 1 ? 's' : ''}</span>
                       </div>
                     )}
                     
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge
-                        variant="outline"
-                        className={getStatusColor(member.status)}
-                      >
-                        {member.status}
-                      </Badge>
+                    <div className="flex items-center gap-2 mt-3">
+                      {member.status && (
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${getStatusColor(member.status)}`}
+                        >
+                          {member.status}
+                        </Badge>
+                      )}
                       <span className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3" />
                         {years}y

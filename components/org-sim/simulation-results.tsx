@@ -12,20 +12,18 @@ import {
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import { useOrgSimStore, calculateYearsAtCompany } from "@/lib/store"
 import type { ReactionType, PredictedReaction } from "@/lib/types"
 
 function getReactionIcon(reaction: ReactionType) {
   switch (reaction) {
     case "Supportive":
-      return <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+      return <CheckCircle2 className="h-4 w-4 text-emerald-600" />
     case "Neutral":
-      return <HelpCircle className="h-4 w-4 text-sky-400" />
+      return <HelpCircle className="h-4 w-4 text-sky-600" />
     case "Resistant":
-      return <XCircle className="h-4 w-4 text-red-400" />
+      return <XCircle className="h-4 w-4 text-red-600" />
   }
 }
 
@@ -40,33 +38,32 @@ function getReactionColor(reaction: ReactionType): string {
   }
 }
 
-function getRiskGaugeColor(score: number): string {
-  if (score < 30) return "bg-emerald-500"
-  if (score < 60) return "bg-amber-500"
-  return "bg-red-500"
-}
-
 function ReactionCard({ prediction }: { prediction: PredictedReaction }) {
   const years = calculateYearsAtCompany(prediction.member.joiningDate)
 
   return (
-    <div className="p-4 rounded-xl bg-card/80 backdrop-blur-sm border border-border/50 hover:border-primary/30 transition-all shadow-sm hover:shadow-md">
+    <div className="p-4 rounded-xl bg-card border border-border hover:shadow-md transition-all">
       <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          {getReactionIcon(prediction.reaction)}
+        <div className="flex items-center gap-3">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+            prediction.reaction === "Supportive" ? "bg-emerald-100" :
+            prediction.reaction === "Neutral" ? "bg-sky-100" : "bg-red-100"
+          }`}>
+            {getReactionIcon(prediction.reaction)}
+          </div>
           <div>
             <p className="font-medium text-foreground text-sm">
               {prediction.member.name}
             </p>
             <p className="text-xs text-muted-foreground">
-              {prediction.member.role} · {years}y at company
+              {prediction.member.role} · {years}y tenure
             </p>
           </div>
         </div>
         {prediction.isHighRisk && (
           <Badge
             variant="outline"
-            className="bg-red-500/20 text-red-400 border-red-500/30 text-xs"
+            className="bg-red-50 text-red-700 border-red-200 text-xs"
           >
             <AlertTriangle className="h-3 w-3 mr-1" />
             Watch
@@ -75,24 +72,27 @@ function ReactionCard({ prediction }: { prediction: PredictedReaction }) {
       </div>
 
       <div className="flex items-center gap-3 mb-3">
-        <span className="text-xs text-muted-foreground w-16">
+        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+          prediction.reaction === "Supportive" ? "bg-emerald-100 text-emerald-700" :
+          prediction.reaction === "Neutral" ? "bg-sky-100 text-sky-700" : "bg-red-100 text-red-700"
+        }`}>
           {prediction.reaction}
         </span>
-        <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
           <div
             className={`h-full ${getReactionColor(prediction.reaction)} transition-all`}
             style={{ width: `${prediction.confidence}%` }}
           />
         </div>
-        <span className="text-xs text-muted-foreground w-10 text-right">
+        <span className="text-xs font-medium text-muted-foreground w-10 text-right">
           {prediction.confidence}%
         </span>
       </div>
 
-      <ul className="space-y-1">
+      <ul className="space-y-1.5">
         {prediction.predictedBehaviors.map((behavior, i) => (
-          <li key={i} className="text-xs text-muted-foreground flex gap-2">
-            <span className="text-primary">•</span>
+          <li key={i} className="text-xs text-muted-foreground flex gap-2 leading-relaxed">
+            <span className="text-primary mt-0.5">•</span>
             {behavior}
           </li>
         ))}
@@ -107,11 +107,13 @@ export function SimulationResults() {
   if (!currentSimulation) {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground">
-        <div className="text-center">
-          <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">Run a simulation to see results</p>
-          <p className="text-xs mt-1">
-            Add team members and describe your decision
+        <div className="text-center max-w-xs">
+          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+            <TrendingUp className="h-8 w-8 opacity-40" />
+          </div>
+          <p className="font-medium text-foreground mb-1">No simulation yet</p>
+          <p className="text-sm">
+            Add team members and describe a decision to see predicted reactions
           </p>
         </div>
       </div>
@@ -124,19 +126,25 @@ export function SimulationResults() {
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-5">
         {/* Overall Risk Score */}
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <div className="p-1.5 rounded-lg bg-primary/20">
-                <Shield className="h-4 w-4 text-primary" />
+        <Card className="border-border shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-base">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                overallRiskScore < 30 ? "bg-emerald-100" :
+                overallRiskScore < 60 ? "bg-amber-100" : "bg-red-100"
+              }`}>
+                <Shield className={`h-4 w-4 ${
+                  overallRiskScore < 30 ? "text-emerald-600" :
+                  overallRiskScore < 60 ? "text-amber-600" : "text-red-600"
+                }`} />
               </div>
-              Overall Risk Score
+              Risk Assessment
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <div className="relative w-24 h-24">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                   <circle
@@ -145,8 +153,8 @@ export function SimulationResults() {
                     r="40"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="10"
-                    className="text-secondary"
+                    strokeWidth="8"
+                    className="text-muted"
                   />
                   <circle
                     cx="50"
@@ -154,7 +162,7 @@ export function SimulationResults() {
                     r="40"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="10"
+                    strokeWidth="8"
                     strokeLinecap="round"
                     strokeDasharray={`${(overallRiskScore / 100) * 251.2} 251.2`}
                     className={
@@ -173,28 +181,38 @@ export function SimulationResults() {
                 </div>
               </div>
               <div className="flex-1">
-                <p className="text-sm text-muted-foreground mb-2">
+                <p className={`text-sm font-medium mb-2 ${
+                  overallRiskScore < 30 ? "text-emerald-700" :
+                  overallRiskScore < 60 ? "text-amber-700" : "text-red-700"
+                }`}>
                   {overallRiskScore < 30
-                    ? "Low risk - Team is generally receptive"
+                    ? "Low Risk"
                     : overallRiskScore < 60
-                      ? "Moderate risk - Some concerns to address"
-                      : "High risk - Significant resistance expected"}
+                      ? "Moderate Risk"
+                      : "High Risk"}
                 </p>
-                <div className="flex gap-4 text-xs">
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <p className="text-sm text-muted-foreground mb-3">
+                  {overallRiskScore < 30
+                    ? "Team is generally receptive to this change"
+                    : overallRiskScore < 60
+                      ? "Some concerns need to be addressed"
+                      : "Significant resistance expected"}
+                </p>
+                <div className="flex flex-wrap gap-3 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                     <span className="text-muted-foreground">
                       {reactions.filter((r) => r.reaction === "Supportive").length} Supportive
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-sky-500" />
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-sky-500" />
                     <span className="text-muted-foreground">
                       {reactions.filter((r) => r.reaction === "Neutral").length} Neutral
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
                     <span className="text-muted-foreground">
                       {reactions.filter((r) => r.reaction === "Resistant").length} Resistant
                     </span>
@@ -206,15 +224,15 @@ export function SimulationResults() {
         </Card>
 
         {/* DRI Briefing */}
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <div className="p-1.5 rounded-lg bg-accent/20">
-                <Lightbulb className="h-4 w-4 text-accent" />
+        <Card className="border-border shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-base">
+              <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center">
+                <Lightbulb className="h-4 w-4 text-amber-600" />
               </div>
               DRI Briefing
               {dri && (
-                <Badge variant="outline" className="ml-2 text-xs">
+                <Badge variant="secondary" className="ml-auto text-xs font-normal">
                   {dri.name}
                 </Badge>
               )}
@@ -228,21 +246,23 @@ export function SimulationResults() {
         </Card>
 
         {/* Suggested Approach */}
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-primary" />
-              Suggested Approach
+        <Card className="border-border shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                <span className="text-primary font-bold text-sm">1-3</span>
+              </div>
+              Recommended Steps
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ol className="space-y-3">
               {suggestedApproach.map((step, i) => (
                 <li key={i} className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-medium">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">
                     {i + 1}
                   </span>
-                  <span className="text-sm text-muted-foreground pt-0.5">{step}</span>
+                  <span className="text-sm text-muted-foreground pt-0.5 leading-relaxed">{step}</span>
                 </li>
               ))}
             </ol>
@@ -250,11 +270,11 @@ export function SimulationResults() {
         </Card>
 
         {/* Rollout Strategy */}
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <div className="p-1.5 rounded-lg bg-primary/20">
-                <Calendar className="h-4 w-4 text-primary" />
+        <Card className="border-border shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-base">
+              <div className="w-9 h-9 rounded-xl bg-sky-100 flex items-center justify-center">
+                <Calendar className="h-4 w-4 text-sky-600" />
               </div>
               Rollout Strategy
             </CardTitle>
@@ -266,12 +286,11 @@ export function SimulationResults() {
           </CardContent>
         </Card>
 
-        <Separator />
-
         {/* Predicted Reactions */}
         <div>
-          <h3 className="text-sm font-medium text-foreground mb-4">
-            Predicted Reactions ({reactions.length} people)
+          <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
+            Individual Reactions
+            <span className="text-muted-foreground font-normal">({reactions.length} people)</span>
           </h3>
           <div className="space-y-3">
             {reactions.map((prediction) => (
