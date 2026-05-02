@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Plus, Users, Calendar, X, ChevronDown, ChevronUp, ChevronRight, FileText, Upload, Loader2 } from "lucide-react"
+import { Plus, Users, Calendar, X, ChevronDown, ChevronUp, ChevronRight, FileText, Upload, Loader2, CheckCircle2, File } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -192,6 +192,7 @@ export function TeamSidebar() {
   const [contextExpanded, setContextExpanded] = useState(false)
   const [isUploadingPdf, setIsUploadingPdf] = useState(false)
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
+  const [pdfUploadSuccess, setPdfUploadSuccess] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     role: "",
@@ -244,9 +245,8 @@ export function TeamSidebar() {
       // Dynamic import pdfjs-dist for client-side PDF parsing
       const pdfjsLib = await import('pdfjs-dist')
       
-      // Use the legacy build which has the worker bundled
-      const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.mjs')
-      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker
+      // Set worker source to CDN
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
 
       const arrayBuffer = await file.arrayBuffer()
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
@@ -266,24 +266,16 @@ export function TeamSidebar() {
         setCompanyContext(fullText.trim())
         setUploadedFileName(file.name)
         setContextExpanded(true)
+        setPdfUploadSuccess(true)
+        setTimeout(() => setPdfUploadSuccess(false), 3000)
       } else {
         alert('Could not extract text from PDF. The PDF may be image-based. Please paste the text manually.')
+        setUploadedFileName(null)
       }
     } catch (error) {
       console.error('PDF upload error:', error)
-      // Fallback: try to read as text file in case it's misnamed
-      try {
-        const text = await file.text()
-        if (text.trim()) {
-          setCompanyContext(text.trim())
-          setUploadedFileName(file.name)
-          setContextExpanded(true)
-        } else {
-          alert('Failed to parse PDF. Please paste the text manually.')
-        }
-      } catch {
-        alert('Failed to parse PDF. Please paste the text manually.')
-      }
+      alert('Failed to parse PDF. Please paste the text manually.')
+      setUploadedFileName(null)
     } finally {
       setIsUploadingPdf(false)
       // Reset the input so the same file can be uploaded again
@@ -649,27 +641,51 @@ export function TeamSidebar() {
                   disabled={isUploadingPdf}
                 />
                 <div className={`flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-lg transition-colors ${
-                  isUploadingPdf ? 'border-primary/50 bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                  isUploadingPdf ? 'border-primary/50 bg-primary/5' : 
+                  pdfUploadSuccess ? 'border-emerald-500 bg-emerald-50' :
+                  'border-border hover:border-primary/50 hover:bg-muted/50'
                 }`}>
                   {isUploadingPdf ? (
                     <>
                       <Loader2 className="h-4 w-4 text-primary animate-spin" />
                       <span className="text-sm text-muted-foreground">Parsing PDF...</span>
                     </>
+                  ) : pdfUploadSuccess ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm text-emerald-700 font-medium">PDF uploaded successfully!</span>
+                    </>
                   ) : (
                     <>
                       <Upload className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">
-                        {uploadedFileName ? `Uploaded: ${uploadedFileName}` : 'Upload PDF (policies, handbook, etc.)'}
+                        Upload PDF (policies, handbook, etc.)
                       </span>
                     </>
                   )}
                 </div>
               </div>
 
+              {/* Show uploaded file as attachment badge */}
+              {uploadedFileName && !pdfUploadSuccess && (
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/20">
+                  <File className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-foreground flex-1 truncate">{uploadedFileName}</span>
+                  <button
+                    onClick={() => {
+                      setUploadedFileName(null)
+                      setCompanyContext('')
+                    }}
+                    className="p-1 hover:bg-primary/10 rounded"
+                  >
+                    <X className="h-3 w-3 text-muted-foreground" />
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground">or paste text</span>
+                <span className="text-xs text-muted-foreground">or paste/edit text</span>
                 <div className="flex-1 h-px bg-border" />
               </div>
 
