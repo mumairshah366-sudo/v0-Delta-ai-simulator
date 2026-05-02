@@ -103,6 +103,20 @@ export async function POST(req: NextRequest) {
 You predict how individual employees will react to company decisions 
 based on their personal context. Analyse each person's status, seniority, 
 NPS score, notes, time at company, and relationship to the DRI.
+
+CRITICAL RULES - you MUST follow these:
+- Person on PIP = Resistant (always)
+- Person with no raise 3+ months = Resistant (almost always)
+- Person at risk of leaving = Resistant (always)
+- Recently promoted person = Supportive (almost always)
+- High performer = Supportive (usually)
+- New joiner = follows senior team sentiment
+- NPS below 5 = skew Resistant
+- NPS above 7 = skew Supportive
+- A salary INCREASE should make most people Supportive
+- A layoff affects ALL departments negatively not just the one being laid off
+- Be DECISIVE - avoid Neutral unless truly justified
+
 Return ONLY valid JSON with no markdown or explanation:
 {
   "members": [
@@ -111,3 +125,88 @@ Return ONLY valid JSON with no markdown or explanation:
       "role": "string", 
       "reaction": "Supportive or Neutral or Resistant",
       "confidence": 0-100,
+      "reasoning": "string - be specific to THIS person's situation",
+      "predicted_behaviours": ["specific behaviour 1", "specific behaviour 2", "specific behaviour 3"],
+      "watch_out": true or false,
+      "what_they_need": "string - specific to this person"
+    }
+  ],
+  "overall_risk_score": 0-100,
+  "biggest_risk": "string",
+  "rollout_strategy": "string",
+  "dri_briefing": "string",
+  "recommendations": ["string", "string", "string"]
+}
+
+` + DELTA_DATA_ENGINE
+
+  const formattedMembers = members.map((m: Record<string, unknown>) => ({
+    ...m,
+    age: m.age || 'Not specified',
+    previousIndustry: m.previousIndustry || 'Not specified',
+  }))
+
+  const userPrompt = `Team members: ${JSON.stringify(formattedMembers)}
+Decision: ${decision}
+Scope: ${scope}
+DRI: ${dri || 'No specific owner - company decision'}
+Company context: ${companyContext || 'None provided'}` + mubitContext
+
+  const aiResponse = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 4000 }
+      })
+    }
+  )
+
+  const rawText = await aiResponse.text()
+  console.log('Gemini status:', aiResponse.status)
+  console.log('Gemini response:', rawText.slice(0, 300))
+
+  if (!aiResponse.ok) {
+    throw new Error(`Gemini error: ${rawText.slice(0, 200)}`)
+  }
+
+  const aiData = JSON.parse(rawText)
+  const content = aiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
+  let jsonContent = content
+  if (content.includes('```json')) {
+    jsonContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '')
+  } else if (content.includes('```')) {
+    jsonContent = content.replace(/```\n?/g, '')
+  }
+  const result = JSON.parse(jsonContent.trim())
+
+  // Save to Mubit memory
+  try {
+    const ingestResponse = await fetch('https://api.mubit.ai/v1/control/ingest', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.MUBIT_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        run_id: `orgsim-${Date.now()}`,
+        project_id: 'proj-bbd21702-891f-4dce-b5c5-9116c92fbe93',
+        documents: [
+          {
+            content: `Decision simulated: "${decision}". Scope: ${scope}. Overall risk: ${result.overall_risk_score}/100. Reactions: ${JSON.stringify(result.members?.map((m: {name: string, reaction: string}) => ({name: m.name, reaction: m.reaction})))}`,
+            metadata: { decision, scope, risk_score: result.overall_risk_score, timestamp: new Date().toISOString() }
+          }
+        ]
+      })
+    })
+    console.log('Mubit ingest status:', ingestResponse.status)
+    const ingestText = await ingestResponse.text()
+    console.log('Mubit ingest response:', ingestText.slice(0, 200))
+  } catch (e) {
+    console.error('Mubit ingest error:', e)
+  }
+
+  return NextResponse.json(result)
+}
