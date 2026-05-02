@@ -28,7 +28,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useOrgSimStore, calculateYearsAtCompany } from "@/lib/store"
+import { useDeltaStore, calculateYearsAtCompany } from "@/lib/store"
 import type { TeamMember, Seniority, Status } from "@/lib/types"
 
 const SENIORITY_OPTIONS: Seniority[] = ["Junior", "Mid", "Senior"]
@@ -169,7 +169,7 @@ function DepartmentSection({ group, teamMembers, onRemove, defaultOpen = true }:
 }
 
 export function TeamSidebar() {
-  const { teamMembers, addTeamMember, removeTeamMember, companyContext, setCompanyContext } = useOrgSimStore()
+  const { teamMembers, addTeamMember, removeTeamMember, companyContext, setCompanyContext } = useDeltaStore()
   const [isOpen, setIsOpen] = useState(false)
   const [contextExpanded, setContextExpanded] = useState(false)
   const [formData, setFormData] = useState({

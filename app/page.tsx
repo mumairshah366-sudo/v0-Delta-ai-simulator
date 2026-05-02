@@ -6,7 +6,7 @@ import { SimulationForm } from "@/components/org-sim/simulation-form"
 import { SimulationResults } from "@/components/org-sim/simulation-results"
 import { PastSimulations } from "@/components/org-sim/past-simulations"
 
-export default function OrgSimPage() {
+export default function DeltaPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Left Sidebar - Team Members */}
@@ -25,7 +25,7 @@ export default function OrgSimPage() {
             </div>
             <div>
               <h1 className="text-xl font-semibold text-foreground tracking-tight">
-                OrgSim
+                Delta
               </h1>
               <p className="text-sm text-muted-foreground">
                 AI-powered decision simulator

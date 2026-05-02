@@ -3,7 +3,7 @@
 import { History, Clock, ChevronRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import { useOrgSimStore } from "@/lib/store"
+import { useDeltaStore } from "@/lib/store"
 
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -21,7 +21,7 @@ function getRiskColor(score: number): string {
 }
 
 export function PastSimulations() {
-  const { pastSimulations } = useOrgSimStore()
+  const { pastSimulations } = useDeltaStore()
 
   if (pastSimulations.length === 0) {
     return null

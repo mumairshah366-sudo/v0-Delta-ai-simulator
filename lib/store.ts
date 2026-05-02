@@ -8,7 +8,7 @@ import type {
   DecisionScope,
 } from "./types"
 
-interface OrgSimStore {
+interface DeltaStore {
   // Team members
   teamMembers: TeamMember[]
   addTeamMember: (member: TeamMember) => void
@@ -40,7 +40,7 @@ interface OrgSimStore {
   setCompanyContext: (context: string) => void
 }
 
-export const useOrgSimStore = create<OrgSimStore>((set) => ({
+export const useDeltaStore = create<DeltaStore>((set) => ({
   // Team members
   teamMembers: [],
   addTeamMember: (member) =>

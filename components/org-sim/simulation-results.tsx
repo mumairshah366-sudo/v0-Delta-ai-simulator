@@ -13,7 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useOrgSimStore, calculateYearsAtCompany } from "@/lib/store"
+import { useDeltaStore, calculateYearsAtCompany } from "@/lib/store"
 import type { ReactionType, PredictedReaction } from "@/lib/types"
 
 function getReactionIcon(reaction: ReactionType) {
@@ -117,7 +117,7 @@ function ReactionCard({ prediction }: { prediction: PredictedReaction }) {
 }
 
 export function SimulationResults() {
-  const { currentSimulation, teamMembers } = useOrgSimStore()
+  const { currentSimulation, teamMembers } = useDeltaStore()
 
   if (!currentSimulation) {
     return (

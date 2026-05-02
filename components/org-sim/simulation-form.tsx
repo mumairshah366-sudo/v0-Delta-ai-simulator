@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useOrgSimStore, getUniqueDepartments } from "@/lib/store"
+import { useDeltaStore, getUniqueDepartments } from "@/lib/store"
 import type { DecisionScope, PastSimulation, SimulationResult, ReactionType, PredictedReaction } from "@/lib/types"
 import { Spinner } from "@/components/ui/spinner"
 
@@ -37,7 +37,7 @@ export function SimulationForm() {
     setCurrentSimulation,
     addPastSimulation,
     companyContext,
-  } = useOrgSimStore()
+  } = useDeltaStore()
 
   const departments = getUniqueDepartments(teamMembers)
 

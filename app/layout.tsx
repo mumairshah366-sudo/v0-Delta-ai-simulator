@@ -7,7 +7,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'OrgSim - AI Decision Simulator',
+  title: 'Delta - AI Decision Simulator',
   description: 'AI-powered decision simulator for managers. Predict team reactions and optimize organizational decisions.',
   generator: 'v0.app',
   icons: {
