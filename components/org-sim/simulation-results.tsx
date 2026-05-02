@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect, useCallback } from "react"
 import {
   AlertTriangle,
   CheckCircle2,
@@ -16,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useDeltaStore, calculateYearsAtCompany } from "@/lib/store"
 import type { ReactionType, PredictedReaction } from "@/lib/types"
 import { ActionPlanModal } from "./action-plan-modal"
+import { SimulationLoadingOverlay } from "./simulation-loading-overlay"
 
 function getReactionIcon(reaction: ReactionType) {
   switch (reaction) {
@@ -118,9 +120,31 @@ function ReactionCard({ prediction }: { prediction: PredictedReaction }) {
 }
 
 export function SimulationResults() {
-  const { currentSimulation, teamMembers } = useDeltaStore()
+  const { currentSimulation, teamMembers, isSimulating } = useDeltaStore()
+  const [showOverlay, setShowOverlay] = useState(false)
+  const [apiReturned, setApiReturned] = useState(false)
 
-  if (!currentSimulation) {
+  // Track when simulation starts/ends
+  useEffect(() => {
+    if (isSimulating) {
+      setShowOverlay(true)
+      setApiReturned(false)
+    }
+  }, [isSimulating])
+
+  // Track when API returns (currentSimulation changes while simulating)
+  useEffect(() => {
+    if (!isSimulating && showOverlay) {
+      setApiReturned(true)
+    }
+  }, [isSimulating, showOverlay])
+
+  const handleLoadingComplete = useCallback(() => {
+    setShowOverlay(false)
+    setApiReturned(false)
+  }, [])
+
+  if (!currentSimulation && !showOverlay) {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground">
         <div className="text-center max-w-xs">
@@ -136,12 +160,22 @@ export function SimulationResults() {
     )
   }
 
-  const dri = teamMembers.find((m) => m.id === currentSimulation.driId)
+  const dri = currentSimulation ? teamMembers.find((m) => m.id === currentSimulation.driId) : null
   const { overallRiskScore, reactions, driBriefing, suggestedApproach, rolloutStrategy, biggestRisk } =
-    currentSimulation
+    currentSimulation || { overallRiskScore: 0, reactions: [], driBriefing: '', suggestedApproach: [], rolloutStrategy: '', biggestRisk: '' }
 
   return (
-    <ScrollArea className="h-full">
+    <div className="relative h-full">
+      {/* Loading Overlay */}
+      <SimulationLoadingOverlay
+        isLoading={showOverlay}
+        teamMembers={teamMembers}
+        onComplete={handleLoadingComplete}
+        apiReturned={apiReturned}
+      />
+
+      {currentSimulation && (
+      <ScrollArea className="h-full">
       <div className="p-6 space-y-5">
         {/* Overall Risk Score */}
         <Card className="border-border shadow-sm">
@@ -149,31 +183,35 @@ export function SimulationResults() {
             <CardTitle className="flex items-center gap-3 text-base">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
                 overallRiskScore < 30 ? "bg-emerald-100" :
-                overallRiskScore < 60 ? "bg-amber-100" : "bg-red-100"
+                overallRiskScore < 60 ? "bg-amber-100" :
+                overallRiskScore < 80 ? "bg-orange-100" : "bg-red-100"
               }`}>
                 <Shield className={`h-4 w-4 ${
                   overallRiskScore < 30 ? "text-emerald-600" :
-                  overallRiskScore < 60 ? "text-amber-600" : "text-red-600"
+                  overallRiskScore < 60 ? "text-amber-600" :
+                  overallRiskScore < 80 ? "text-orange-600" : "text-red-600"
                 }`} />
               </div>
               <div>
                 <span>Overall Risk Score: </span>
                 <span className={`font-bold ${
                   overallRiskScore < 30 ? "text-emerald-600" :
-                  overallRiskScore < 60 ? "text-amber-600" : "text-red-600"
+                  overallRiskScore < 60 ? "text-amber-600" :
+                  overallRiskScore < 80 ? "text-orange-600" : "text-red-600"
                 }`}>
-                  {overallRiskScore}/100
-                </span>
-                <span className={`ml-2 text-sm font-normal ${
-                  overallRiskScore < 30 ? "text-emerald-600" :
-                  overallRiskScore < 60 ? "text-amber-600" : "text-red-600"
-                }`}>
-                  — {overallRiskScore < 30 ? "Low Risk" : overallRiskScore < 60 ? "Medium Risk" : "High Risk"}
+                  {overallRiskScore} / 100
                 </span>
               </div>
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1 ml-12">
-              Below 30 = <span className="text-emerald-600">Low</span> · 30-60 = <span className="text-amber-600">Medium</span> · Above 60 = <span className="text-red-600">High</span>
+            <p className={`text-sm font-medium mt-1 ml-12 ${
+              overallRiskScore < 30 ? "text-emerald-600" :
+              overallRiskScore < 60 ? "text-amber-600" :
+              overallRiskScore < 80 ? "text-orange-600" : "text-red-600"
+            }`}>
+              {overallRiskScore < 30 ? "Low Risk — Smooth adoption likely" :
+               overallRiskScore < 60 ? "Medium Risk — Proactive management needed" :
+               overallRiskScore < 80 ? "High Risk — Significant resistance expected" :
+               "Critical Risk — Decision may fail without intervention"}
             </p>
           </CardHeader>
           <CardContent>
@@ -218,7 +256,7 @@ export function SimulationResults() {
               </div>
               <div className="flex-1">
                 <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                  Based on predicted resistance levels and number of at-risk individuals in this simulation.
+                  Calculated from individual resistance scores, status multipliers, and org sentiment data from Glassdoor and IBM HR datasets.
                 </p>
                 <div className="flex flex-wrap gap-3 text-xs">
                   <div className="flex items-center gap-1.5">
@@ -344,5 +382,7 @@ export function SimulationResults() {
         </div>
       </div>
     </ScrollArea>
+      )}
+    </div>
   )
 }
