@@ -70,34 +70,35 @@ Top complaints: "Low compensation, zero advancement opportunities"
 
 export async function POST(req: NextRequest) {
   const { members, decision, scope, dri, companyContext } = await req.json()
+
   // Fetch Mubit memory for context
-let mubitContext = ''
-try {
-  const mubitResponse = await fetch('https://api.mubit.ai/v1/recall', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.MUBIT_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      agent_id: 'orgsim',
-      query: decision,
-      limit: 5
+  let mubitContext = ''
+  try {
+    const mubitResponse = await fetch('https://api.mubit.ai/v1/recall', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.MUBIT_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        agent_id: 'orgsim',
+        query: decision,
+        limit: 5
+      })
     })
-  })
-  if (mubitResponse.ok) {
-    const mubitData = await mubitResponse.json()
-    if (mubitData.results?.length > 0) {
-      mubitContext = `\n\nPREVIOUS SIMULATION HISTORY (from Delta memory):\n${
-        mubitData.results.map((r: any) => 
-          `- Decision: "${r.input?.decision}" → Outcome: ${JSON.stringify(r.output?.members?.map((m: any) => ({name: m.name, reaction: m.reaction})))}`
-        ).join('\n')
-      }\nUse this history to improve prediction accuracy for returning team members.`
+    if (mubitResponse.ok) {
+      const mubitData = await mubitResponse.json()
+      if (mubitData.results?.length > 0) {
+        mubitContext = `\n\nPREVIOUS SIMULATION HISTORY (from Delta memory):\n${
+          mubitData.results.map((r: any) =>
+            `- Decision: "${r.input?.decision}" → Outcome: ${JSON.stringify(r.output?.members?.map((m: any) => ({name: m.name, reaction: m.reaction})))}`
+          ).join('\n')
+        }\nUse this history to improve prediction accuracy for returning team members.`
+      }
     }
+  } catch {
+    // Mubit recall failed silently
   }
-} catch {
-  // Mubit recall failed silently
-}
 
   const systemPrompt = `You are an organisational psychology simulator. 
 You predict how individual employees will react to company decisions 
@@ -109,7 +110,7 @@ Return ONLY valid JSON with no markdown or explanation:
     {
       "name": "string",
       "role": "string", 
-      "reaction": "Supportive" | "Neutral" | "Resistant",
+      "reaction": "Supportive or Neutral or Resistant",
       "confidence": 0-100,
       "reasoning": "string",
       "predicted_behaviours": ["string", "string", "string"],
@@ -128,7 +129,6 @@ USE THIS DATA TO GROUND YOUR PREDICTIONS. Reference specific statistics where re
 
 ` + DELTA_DATA_ENGINE
 
-  // Format members with all available context including age and industry
   const formattedMembers = members.map((m: Record<string, unknown>) => ({
     ...m,
     age: m.age || 'Not specified',
@@ -143,7 +143,7 @@ Company context: ${companyContext || 'None provided'}
 
 Note: Consider each person's age and previous industry background when predicting reactions. 
 Younger employees (18-25) may be more adaptable but also 3x more likely to leave during major changes.
-Industry background affects expectations - e.g., someone from Government may expect more process, while Tech/Startup expects faster iteration.`+ mubitContext
+Industry background affects expectations - e.g., someone from Government may expect more process, while Tech/Startup expects faster iteration.` + mubitContext
 
   const aiResponse = await fetch('https://api.vercel.ai/v1/chat/completions', {
     method: 'POST',
@@ -169,6 +169,10 @@ Industry background affects expectations - e.g., someone from Government may exp
     throw new Error(`Gateway failed ${aiResponse.status}: ${rawText.slice(0, 200)}`)
   }
 
+  if (!rawText || rawText.trim() === '') {
+    throw new Error('Gateway returned empty response')
+  }
+
   const aiData = JSON.parse(rawText)
   const content = aiData.choices?.[0]?.message?.content || '{}'
   let jsonContent = content
@@ -178,6 +182,36 @@ Industry background affects expectations - e.g., someone from Government may exp
     jsonContent = content.replace(/```\n?/g, '')
   }
   const result = JSON.parse(jsonContent.trim())
+
+  // Save to Mubit memory
+  try {
+    await fetch('https://api.mubit.ai/v1/ingest', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.MUBIT_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        project_id: 'proj-bbd21702-891f-4dce-b5c5-9116c92fbe93',
+        agent_id: 'orgsim',
+        entries: [
+          {
+            type: 'fact',
+            content: `Decision simulated: "${decision}". Scope: ${scope}. Overall risk: ${result.overall_risk_score}/100. Member reactions: ${JSON.stringify(result.members?.map((m: {name: string, reaction: string}) => ({name: m.name, reaction: m.reaction})))}`,
+            metadata: {
+              decision,
+              scope,
+              risk_score: result.overall_risk_score,
+              timestamp: new Date().toISOString()
+            }
+          }
+        ]
+      })
+    })
+    console.log('Mubit ingest successful')
+  } catch (e) {
+    console.error('Mubit ingest error:', e)
+  }
 
   return NextResponse.json(result)
 }
