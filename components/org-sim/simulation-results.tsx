@@ -365,8 +365,8 @@ export function SimulationResults() {
           </CardContent>
         </Card>
 
-        {/* Generate Action Plan Button */}
-        <ActionPlanModal simulation={currentSimulation} />
+       {/* Generate Action Plan Button */}
+{/* <ActionPlanModal simulation={currentSimulation} /> */}
 
         {/* Predicted Reactions */}
         <div>
