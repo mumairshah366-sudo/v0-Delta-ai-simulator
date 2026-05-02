@@ -236,49 +236,35 @@ export function TeamSidebar() {
     return Object.values(groups).sort((a, b) => b.members.length - a.members.length)
   }, [teamMembers])
 
-  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     setIsUploadingPdf(true)
     try {
-      // Dynamic import pdfjs-dist for client-side PDF parsing
-      const pdfjsLib = await import('pdfjs-dist')
+      // Read file as text - works for .txt, .md, .csv, etc.
+      const text = await file.text()
       
-      // Set worker source to CDN
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
-
-      const arrayBuffer = await file.arrayBuffer()
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
-      const pdf = await loadingTask.promise
-      
-      let fullText = ''
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i)
-        const textContent = await page.getTextContent()
-        const pageText = textContent.items
-          .map((item) => ('str' in item ? item.str : ''))
-          .join(' ')
-        fullText += pageText + '\n\n'
-      }
-
-      if (fullText.trim()) {
-        setCompanyContext(fullText.trim())
+      // Check if it looks like binary/PDF content
+      if (text.startsWith('%PDF') || text.includes('\x00')) {
+        alert('PDF files cannot be read directly. Please copy the text from your PDF and paste it below.')
+        setUploadedFileName(null)
+      } else if (text.trim()) {
+        setCompanyContext(text.trim())
         setUploadedFileName(file.name)
         setContextExpanded(true)
         setPdfUploadSuccess(true)
         setTimeout(() => setPdfUploadSuccess(false), 3000)
       } else {
-        alert('Could not extract text from PDF. The PDF may be image-based. Please paste the text manually.')
+        alert('File appears to be empty. Please paste the text manually.')
         setUploadedFileName(null)
       }
     } catch (error) {
-      console.error('PDF upload error:', error)
-      alert('Failed to parse PDF. Please paste the text manually.')
+      console.error('File upload error:', error)
+      alert('Failed to read file. Please paste the text manually.')
       setUploadedFileName(null)
     } finally {
       setIsUploadingPdf(false)
-      // Reset the input so the same file can be uploaded again
       e.target.value = ''
     }
   }
@@ -631,12 +617,12 @@ export function TeamSidebar() {
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-3">
             <div className="space-y-3">
-              {/* PDF Upload */}
+              {/* File Upload - accepts text files */}
               <div className="relative">
                 <input
                   type="file"
-                  accept=".pdf"
-                  onChange={handlePdfUpload}
+                  accept=".txt,.md,.csv,.json"
+                  onChange={handleFileUpload}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   disabled={isUploadingPdf}
                 />
@@ -648,18 +634,18 @@ export function TeamSidebar() {
                   {isUploadingPdf ? (
                     <>
                       <Loader2 className="h-4 w-4 text-primary animate-spin" />
-                      <span className="text-sm text-muted-foreground">Parsing PDF...</span>
+                      <span className="text-sm text-muted-foreground">Reading file...</span>
                     </>
                   ) : pdfUploadSuccess ? (
                     <>
                       <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      <span className="text-sm text-emerald-700 font-medium">PDF uploaded successfully!</span>
+                      <span className="text-sm text-emerald-700 font-medium">File uploaded successfully!</span>
                     </>
                   ) : (
                     <>
                       <Upload className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">
-                        Upload PDF (policies, handbook, etc.)
+                        Upload text file (.txt, .md)
                       </span>
                     </>
                   )}
