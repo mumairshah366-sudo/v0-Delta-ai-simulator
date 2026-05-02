@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Users, Calendar, X } from "lucide-react"
+import { Plus, Users, Calendar, X, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,6 +18,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -124,6 +125,9 @@ export function TeamSidebar() {
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add Team Member</DialogTitle>
+              <DialogDescription>
+                Add a new team member to simulate how they&apos;ll react to organizational decisions.
+              </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
@@ -185,42 +189,96 @@ export function TeamSidebar() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="manager">Reporting Manager</Label>
+              <div className="space-y-2">
+                <Label htmlFor="manager">Reporting Manager</Label>
+                <Select
+                  value={formData.managerId || "none"}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      managerId: value === "none" ? null : value,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select manager" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No manager</SelectItem>
+                    {teamMembers.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reportees">Direct Reportees</Label>
+                <div className="flex flex-wrap gap-2 p-2 min-h-[40px] rounded-md border border-input bg-input">
+                  {formData.reporteeIds.length === 0 ? (
+                    <span className="text-sm text-muted-foreground">No reportees selected</span>
+                  ) : (
+                    formData.reporteeIds.map((id) => {
+                      const member = teamMembers.find((m) => m.id === id)
+                      return member ? (
+                        <Badge
+                          key={id}
+                          variant="secondary"
+                          className="flex items-center gap-1 cursor-pointer hover:bg-destructive/20"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              reporteeIds: formData.reporteeIds.filter((r) => r !== id),
+                            })
+                          }
+                        >
+                          {member.name}
+                          <X className="h-3 w-3" />
+                        </Badge>
+                      ) : null
+                    })
+                  )}
+                </div>
+                {teamMembers.filter((m) => !formData.reporteeIds.includes(m.id)).length > 0 && (
                   <Select
-                    value={formData.managerId || "none"}
-                    onValueChange={(value) =>
-                      setFormData({
-                        ...formData,
-                        managerId: value === "none" ? null : value,
-                      })
-                    }
+                    value=""
+                    onValueChange={(value) => {
+                      if (value && !formData.reporteeIds.includes(value)) {
+                        setFormData({
+                          ...formData,
+                          reporteeIds: [...formData.reporteeIds, value],
+                        })
+                      }
+                    }}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select manager" />
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Add a reportee..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">No manager</SelectItem>
-                      {teamMembers.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.name}
-                        </SelectItem>
-                      ))}
+                      {teamMembers
+                        .filter((m) => !formData.reporteeIds.includes(m.id))
+                        .map((m) => (
+                          <SelectItem key={m.id} value={m.id}>
+                            {m.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="joiningDate">Joining Date</Label>
-                  <Input
-                    id="joiningDate"
-                    type="date"
-                    value={formData.joiningDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, joiningDate: e.target.value })
-                    }
-                  />
-                </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="joiningDate">Joining Date</Label>
+                <Input
+                  id="joiningDate"
+                  type="date"
+                  value={formData.joiningDate}
+                  onChange={(e) =>
+                    setFormData({ ...formData, joiningDate: e.target.value })
+                  }
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -292,14 +350,21 @@ export function TeamSidebar() {
           ) : (
             teamMembers.map((member) => {
               const years = calculateYearsAtCompany(member.joiningDate)
+              const manager = member.managerId
+                ? teamMembers.find((m) => m.id === member.managerId)
+                : null
+              const reportees = member.reporteeIds
+                .map((id) => teamMembers.find((m) => m.id === id))
+                .filter(Boolean)
+              
               return (
                 <div
                   key={member.id}
-                  className="group relative p-3 rounded-lg bg-card border border-border hover:border-primary/50 transition-colors"
+                  className="group relative p-3 rounded-xl bg-card border border-border hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all"
                 >
                   <button
                     onClick={() => removeTeamMember(member.id)}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/20 rounded"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive/20 rounded-lg"
                     aria-label={`Remove ${member.name}`}
                   >
                     <X className="h-3 w-3 text-destructive" />
@@ -311,6 +376,23 @@ export function TeamSidebar() {
                     <p className="text-xs text-muted-foreground">
                       {member.role} · {member.department}
                     </p>
+                    
+                    {/* Manager info */}
+                    {manager && (
+                      <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
+                        <ChevronUp className="h-3 w-3 text-primary/60" />
+                        <span>Reports to {manager.name}</span>
+                      </div>
+                    )}
+                    
+                    {/* Reportees info */}
+                    {reportees.length > 0 && (
+                      <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                        <ChevronDown className="h-3 w-3 text-accent/60" />
+                        <span>{reportees.length} direct report{reportees.length > 1 ? 's' : ''}</span>
+                      </div>
+                    )}
+                    
                     <div className="flex items-center gap-2 mt-2">
                       <Badge
                         variant="outline"

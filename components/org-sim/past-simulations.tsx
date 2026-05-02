@@ -28,10 +28,12 @@ export function PastSimulations() {
   }
 
   return (
-    <div className="border-t border-border bg-card/50">
+    <div className="flex-shrink-0 border-t border-border bg-card/30 backdrop-blur-sm">
       <div className="px-6 py-4">
         <div className="flex items-center gap-2 mb-4">
-          <History className="h-4 w-4 text-muted-foreground" />
+          <div className="p-1.5 rounded-lg bg-primary/10">
+            <History className="h-3.5 w-3.5 text-primary" />
+          </div>
           <h3 className="text-sm font-medium text-foreground">Past Simulations</h3>
           <span className="text-xs text-muted-foreground ml-auto">
             {pastSimulations.length} total
@@ -43,7 +45,7 @@ export function PastSimulations() {
             {pastSimulations.map((sim) => (
               <div
                 key={sim.id}
-                className="flex-shrink-0 w-64 p-3 rounded-lg bg-secondary/50 border border-border hover:border-primary/50 transition-colors cursor-pointer group"
+                className="flex-shrink-0 w-64 p-3 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer group"
               >
                 <div className="flex items-start justify-between mb-2">
                   <Badge variant="outline" className="text-xs">

@@ -50,7 +50,7 @@ function ReactionCard({ prediction }: { prediction: PredictedReaction }) {
   const years = calculateYearsAtCompany(prediction.member.joiningDate)
 
   return (
-    <div className="p-4 rounded-lg bg-card border border-border">
+    <div className="p-4 rounded-xl bg-card/80 backdrop-blur-sm border border-border/50 hover:border-primary/30 transition-all shadow-sm hover:shadow-md">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           {getReactionIcon(prediction.reaction)}
@@ -126,10 +126,12 @@ export function SimulationResults() {
     <ScrollArea className="h-full">
       <div className="p-6 space-y-6">
         {/* Overall Risk Score */}
-        <Card className="border-border bg-card">
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Shield className="h-4 w-4 text-primary" />
+              <div className="p-1.5 rounded-lg bg-primary/20">
+                <Shield className="h-4 w-4 text-primary" />
+              </div>
               Overall Risk Score
             </CardTitle>
           </CardHeader>
@@ -204,10 +206,12 @@ export function SimulationResults() {
         </Card>
 
         {/* DRI Briefing */}
-        <Card className="border-border bg-card">
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Lightbulb className="h-4 w-4 text-primary" />
+              <div className="p-1.5 rounded-lg bg-accent/20">
+                <Lightbulb className="h-4 w-4 text-accent" />
+              </div>
               DRI Briefing
               {dri && (
                 <Badge variant="outline" className="ml-2 text-xs">
@@ -224,9 +228,12 @@ export function SimulationResults() {
         </Card>
 
         {/* Suggested Approach */}
-        <Card className="border-border bg-card">
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Suggested Approach</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary" />
+              Suggested Approach
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ol className="space-y-3">
@@ -243,10 +250,12 @@ export function SimulationResults() {
         </Card>
 
         {/* Rollout Strategy */}
-        <Card className="border-border bg-card">
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Calendar className="h-4 w-4 text-primary" />
+              <div className="p-1.5 rounded-lg bg-primary/20">
+                <Calendar className="h-4 w-4 text-primary" />
+              </div>
               Rollout Strategy
             </CardTitle>
           </CardHeader>
