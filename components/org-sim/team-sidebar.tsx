@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Plus, Users, Calendar, X, ChevronDown, ChevronUp, ChevronRight, FileText } from "lucide-react"
+import { Plus, Users, Calendar, X, ChevronDown, ChevronUp, ChevronRight, FileText, Upload, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -190,6 +190,8 @@ export function TeamSidebar() {
   const { teamMembers, addTeamMember, removeTeamMember, companyContext, setCompanyContext } = useDeltaStore()
   const [isOpen, setIsOpen] = useState(false)
   const [contextExpanded, setContextExpanded] = useState(false)
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false)
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     role: "",
@@ -232,6 +234,38 @@ export function TeamSidebar() {
 
     return Object.values(groups).sort((a, b) => b.members.length - a.members.length)
   }, [teamMembers])
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploadingPdf(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/parse-pdf', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to parse PDF')
+      }
+
+      const data = await response.json()
+      setCompanyContext(data.text)
+      setUploadedFileName(file.name)
+      setContextExpanded(true)
+    } catch (error) {
+      console.error('PDF upload error:', error)
+      alert('Failed to parse PDF. Please try again or paste the text manually.')
+    } finally {
+      setIsUploadingPdf(false)
+      // Reset the input so the same file can be uploaded again
+      e.target.value = ''
+    }
+  }
 
   const handleSubmit = () => {
     if (!formData.name || !formData.role || !formData.department) return
@@ -580,7 +614,41 @@ export function TeamSidebar() {
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-3">
-            <div className="space-y-2">
+            <div className="space-y-3">
+              {/* PDF Upload */}
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={handlePdfUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  disabled={isUploadingPdf}
+                />
+                <div className={`flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-lg transition-colors ${
+                  isUploadingPdf ? 'border-primary/50 bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                }`}>
+                  {isUploadingPdf ? (
+                    <>
+                      <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                      <span className="text-sm text-muted-foreground">Parsing PDF...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        {uploadedFileName ? `Uploaded: ${uploadedFileName}` : 'Upload PDF (policies, handbook, etc.)'}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground">or paste text</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
               <Textarea
                 id="company-context"
                 value={companyContext}
