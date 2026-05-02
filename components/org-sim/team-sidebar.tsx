@@ -241,20 +241,26 @@ export function TeamSidebar() {
 
     setIsUploadingPdf(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
+      // Dynamic import pdfjs-dist for client-side PDF parsing
+      const pdfjsLib = await import('pdfjs-dist')
+      
+      // Set worker source
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
 
-      const response = await fetch('/api/parse-pdf', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to parse PDF')
+      const arrayBuffer = await file.arrayBuffer()
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+      
+      let fullText = ''
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i)
+        const textContent = await page.getTextContent()
+        const pageText = textContent.items
+          .map((item) => ('str' in item ? item.str : ''))
+          .join(' ')
+        fullText += pageText + '\n\n'
       }
 
-      const data = await response.json()
-      setCompanyContext(data.text)
+      setCompanyContext(fullText.trim())
       setUploadedFileName(file.name)
       setContextExpanded(true)
     } catch (error) {
