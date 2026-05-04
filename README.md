@@ -6,7 +6,7 @@
 
 ## What is Delta?
 
-Delta helps managers simulate how their team will react to organisational decisions — before announcing them.
+Delta helps managers simulate how their team will react to organisational decisions, before announcing them.
 
 Add your team members with context (role, seniority, status, NPS score, personal notes). Describe a decision. Delta predicts how each individual will react, where resistance will come from, and how to roll it out effectively.
 
@@ -16,7 +16,7 @@ Add your team members with context (role, seniority, status, NPS score, personal
 
 ## The Problem
 
-Every manager has announced a decision that landed badly. Not because it was wrong — but because they didn't know how their team would react.
+Every manager has announced a decision that landed badly. Not because it was wrong, but because they didn't know how their team would react.
 
 Current options:
 - **Do nothing** — announce it and deal with the fallout
