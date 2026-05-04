@@ -1,4 +1,4 @@
-# Delta — AI-Powered Organisational Decision Simulator
+# Delta: AI-Powered Organisational Decision Simulator
 
 > Predict how your team will react to any decision before you announce it.
 
